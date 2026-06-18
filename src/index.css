@@ -1,0 +1,206 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #0A84FF;
+  --color-brand-secondary: #111111;
+  --color-brand-accent: #F5F9FF;
+  --color-brand-light: #F5F5F7;
+  --color-brand-muted: #8E8E93;
+  --font-sans: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: #F5F5F7;
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+  }
+}
+
+/* Glassmorphic navigation panel */
+.glass-nav {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.premium-card {
+  background: #FFFFFF;
+  border-radius: 24px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.premium-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.05);
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Sleek horizontal scrollbar for responsive table */
+.responsive-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+.responsive-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 10px;
+}
+.responsive-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+}
+.responsive-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Animations & Transitions for Premium UI */
+.animate-slide-in {
+  animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-fade-in {
+  animation: fadeInOverlay 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Disable default scrollbar behavior for mobile horizontal categories */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Dark Mode Override Rules for Premium Midnight Look */
+body.dark {
+  background-color: #0E0E10 !important;
+  color: #F5F5F7 !important;
+}
+
+body.dark .premium-card {
+  background: #16161A !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+body.dark .premium-card:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+body.dark .glass-nav {
+  background: rgba(14, 14, 16, 0.85) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.dark .text-brand-secondary {
+  color: #F5F5F7 !important;
+}
+
+body.dark .text-brand-muted {
+  color: #A1A1AA !important;
+}
+
+body.dark .bg-white {
+  background-color: #16161A !important;
+}
+
+body.dark .bg-gray-50 {
+  background-color: #1F1F24 !important;
+}
+
+body.dark .border-gray-100 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.dark .border-gray-200 {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+body.dark input, body.dark select, body.dark textarea {
+  background-color: #1F1F24 !important;
+  color: #F5F5F7 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+body.dark input::placeholder {
+  color: #71717A !important;
+}
+
+body.dark .bg-blue-50 {
+  background-color: rgba(10, 132, 255, 0.1) !important;
+}
+
+body.dark .text-gray-900 {
+  color: #F5F5F7 !important;
+}
+
+body.dark .text-gray-800 {
+  color: #E4E4E7 !important;
+}
+
+body.dark .text-gray-700 {
+  color: #D4D4D8 !important;
+}
+
+body.dark .text-gray-655, body.dark .text-gray-600 {
+  color: #A1A1AA !important;
+}
+
+body.dark .text-gray-500 {
+  color: #71717A !important;
+}
+
+body.dark .bg-gray-50\/80 {
+  background-color: rgba(31, 31, 36, 0.8) !important;
+}
+
+body.dark .bg-gray-50\/30 {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Scrollbar dark mode adjustments */
+body.dark .responsive-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.01);
+}
+body.dark .responsive-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+body.dark .responsive-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Cart Button micro-animation */
+.animate-cart-bounce {
+  animation: cartBounce 0.5s ease-in-out;
+}
+
+@keyframes cartBounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15) rotate(-3deg); }
+  50% { transform: scale(0.95) rotate(3deg); }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+

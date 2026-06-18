@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Preços - Alcance Imports</title>
+    
+    <!-- Google Fonts: Inter & SF Pro Display (CDN) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Tailwind Config for Custom Theme -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['SF Pro Display', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            primary: '#0A84FF',
+                            secondary: '#111111',
+                            accent: '#F5F9FF',
+                            light: '#F5F5F7',
+                            muted: '#8E8E93'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #F5F5F7;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        /* Glassmorphic navigation panel */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .premium-card {
+            background: #FFFFFF;
+            border-radius: 24px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(0, 0, 0, 0.03);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .premium-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Admin Editable mode formatting */
+        .admin-editable [contenteditable="true"] {
+            outline: none;
+            transition: all 0.2s ease;
+            border-bottom: 1px dashed rgba(10, 132, 255, 0.4);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        .admin-editable [contenteditable="true"]:hover {
+            background-color: rgba(10, 132, 255, 0.05);
+            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.15);
+        }
+
+        .admin-editable [contenteditable="true"]:focus {
+            background-color: rgba(10, 132, 255, 0.08);
+            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.4);
+            border-bottom-color: transparent;
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Sleek horizontal scrollbar for responsive table */
+        .responsive-scrollbar::-webkit-scrollbar {
+            height: 6px;
+        }
+        .responsive-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 10px;
+        }
+        .responsive-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.12);
+            border-radius: 10px;
+        }
+        .responsive-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.25);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased text-brand-secondary">
+
+    <!-- ==================== TOP NAVIGATION TOOLBAR (ADMIN MODE ONLY) ==================== -->
+    <div id="admin-toolbar" class="sticky top-0 z-50 bg-brand-secondary/95 backdrop-blur-md border-b border-white/10 px-4 py-3 flex flex-wrap items-center justify-between text-white shadow-lg transition-all duration-300">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                <i data-lucide="settings" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <h1 class="text-sm font-bold leading-none">Painel de Gerenciamento</h1>
+                <p class="text-[10px] text-brand-muted mt-0.5">Edite os preços, capacidades e modelos. As cores interativas atualizarão as imagens automaticamente.</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 mt-2 sm:mt-0">
+            <!-- Reset table -->
+            <button onclick="resetToDefaults()" class="px-3 py-1.5 text-xs font-semibold text-gray-300 bg-white/5 hover:bg-white/10 rounded-lg flex items-center gap-1.5 transition-colors" title="Restaurar tabela inicial">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                Resetar
+            </button>
+
+            <!-- Share URL -->
+            <button onclick="generateShareLink()" class="px-3 py-1.5 text-xs font-bold text-brand-secondary bg-white hover:bg-gray-100 rounded-lg flex items-center gap-1.5 transition-colors shadow-md shadow-black/10">
+                <i data-lucide="share-2" class="w-3.5 h-3.5 text-brand-primary"></i>
+                Copiar Link p/ Cliente
+            </button>
+
+            <!-- Switch to Client Mode preview -->
+            <button onclick="switchToClientPreview()" class="px-3 py-1.5 text-xs font-semibold text-gray-300 bg-white/5 hover:bg-white/10 rounded-lg flex items-center gap-1.5 transition-colors">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                Modo Cliente
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== HEADER (CLIENT VIEW NAV) ==================== -->
+    <header class="glass-nav sticky top-0 z-40 px-4 py-4 flex items-center justify-between transition-all duration-300" id="client-header">
+        <div class="max-w-6xl mx-auto w-full flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <img src="public/logo-completa.png" alt="Alcance Imports Logo" class="h-8 md:h-10 w-auto object-contain">
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a id="whatsapp-link" href="#" target="_blank" class="px-4 py-2 text-xs font-semibold text-white bg-[#25D366] hover:bg-[#20ba5a] rounded-full flex items-center gap-1.5 shadow-sm transition-all transform hover:scale-105">
+                    <i data-lucide="phone" class="w-3.5 h-3.5"></i>
+                    Encomendar via WhatsApp
+                </a>
+                
+                <button id="btn-open-admin" onclick="enterAdminMode()" class="px-3 py-2 text-xs font-semibold text-brand-primary bg-blue-50 border border-blue-100 hover:bg-blue-100 rounded-full flex items-center gap-1.5 transition-colors">
+                    <i data-lucide="unlock" class="w-3.5 h-3.5"></i>
+                    Painel
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Admin Preview Banner -->
+    <div id="admin-preview-indicator" class="hidden bg-blue-600 text-white text-center py-2 px-4 text-xs font-bold shadow-inner flex items-center justify-center gap-2">
+        <i data-lucide="eye" class="w-4 h-4"></i>
+        <span>Você está visualizando no Modo Cliente.</span>
+        <button onclick="enterAdminMode()" class="underline hover:text-blue-200 ml-2 font-black">Voltar ao Modo Edição</button>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-4xl mx-auto w-full px-3 py-6 flex-grow flex flex-col gap-6 fade-in">
+        
+        <!-- ==================== HERO BANNERS ==================== -->
+        <section class="premium-card p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden">
+            <div class="flex-grow space-y-4 text-center md:text-left">
+                <span class="text-xs font-bold text-brand-primary tracking-[0.2em] uppercase block">Produtos Sob Encomenda</span>
+                <h2 class="text-3xl md:text-4xl font-black tracking-tight text-brand-secondary leading-none uppercase">CATÁLOGO DE PREÇOS<br><span class="text-brand-primary">TECNOLOGIA</span></h2>
+                <p class="text-xs md:text-sm text-brand-muted max-w-md leading-relaxed">
+                    Valores atualizados. Todos os nossos aparelhos Apple contam com garantia mundial de 1 ano. Compre com contrato jurídico e segurança garantida.
+                </p>
+                
+                <!-- Pills info -->
+                <div class="flex flex-wrap gap-2 justify-center md:justify-start pt-1">
+                    <span class="px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100 text-[10px] sm:text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-brand-primary"></i>
+                        Garantia 1 Ano Apple
+                    </span>
+                    <span class="px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100 text-[10px] sm:text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                        <i data-lucide="lock" class="w-3.5 h-3.5 text-brand-primary"></i>
+                        Contrato de Compra
+                    </span>
+                    <span class="px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100 text-[10px] sm:text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                        <i data-lucide="credit-card" class="w-3.5 h-3.5 text-brand-primary"></i>
+                        Até 12x c/ Juros
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Apple tech specifications image -->
+            <div class="w-56 h-56 md:w-64 md:h-64 flex-shrink-0 flex items-center justify-center relative">
+                <div class="absolute w-44 h-44 rounded-full bg-brand-primary/10 blur-3xl"></div>
+                <img src="https://cdsassets.apple.com/live/7WUAS350/images/tech-specs/iphone-17-pro-17-pro-max-hero.png" alt="Dispositivos Apple Hero" class="h-full object-contain filter drop-shadow-[0_20px_40px_rgba(10,132,255,0.14)] relative z-10 hover:scale-105 transition-transform duration-500">
+            </div>
+        </section>
+
+        <!-- ==================== VITRINE INTERATIVA (APPLE SHOWCASE) ==================== -->
+        <section id="apple-showcase-section" class="space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+                <div>
+                    <h3 class="text-base font-extrabold text-brand-secondary tracking-tight uppercase flex items-center gap-2">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-brand-primary animate-pulse"></i>
+                        Vitrine Interativa Apple
+                    </h3>
+                    <p class="text-xs text-brand-muted">Selecione o modelo e clique nas cores para ver o visual oficial</p>
+                </div>
+                <div class="flex items-center gap-1 bg-white border border-gray-200/80 rounded-full p-1 shadow-sm w-fit self-start sm:self-auto no-print">
+                    <button onclick="toggleShowcaseView(true)" id="btn-view-showcase" class="px-3.5 py-1.5 rounded-full text-xs font-bold text-white bg-brand-primary transition-all flex items-center gap-1 shadow-sm">
+                        <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                        Vitrine Ativa
+                    </button>
+                    <button onclick="toggleShowcaseView(false)" id="btn-view-table-only" class="px-3.5 py-1.5 rounded-full text-xs font-semibold text-brand-muted hover:text-brand-secondary transition-all flex items-center gap-1">
+                        <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                        Ocultar Vitrine
+                    </button>
+                </div>
+            </div>
+            
+            <div id="showcase-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6 transition-all duration-500">
+                <!-- Dynamically rendered visual cards showing the key iPhones -->
+            </div>
+        </section>
+
+        <!-- ==================== SEARCH / FILTER WRAPPER ==================== -->
+        <section class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 border-b border-gray-200/50 pb-4">
+            <div>
+                <h3 class="text-base font-extrabold text-brand-secondary tracking-tight">Tabela de Preços Geral</h3>
+                <p class="text-xs text-brand-muted">Todos os produtos organizados por seção</p>
+            </div>
+            
+            <!-- Global search input bar -->
+            <div class="relative flex items-center max-w-xs w-full">
+                <i data-lucide="search" class="w-4 h-4 text-brand-muted absolute left-3"></i>
+                <input oninput="filterModels(this.value)" type="text" class="w-full text-xs bg-white border border-gray-200 rounded-full py-2.5 pl-9 pr-4 text-brand-secondary focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 transition-all shadow-sm" placeholder="Buscar modelo em todas as seções...">
+            </div>
+        </section>
+
+        <!-- DYNAMIC PRICING SECTIONS CONTAINER -->
+        <div id="pricing-sections-container" class="space-y-8">
+            <!-- Dynamically populated in JavaScript separated by sections -->
+        </div>
+
+        <!-- ==================== PAYMENTS METHOD CARD SECTION ==================== -->
+        <section class="space-y-4">
+            <h3 class="text-xs font-bold text-brand-primary uppercase tracking-widest px-1">Formas de Pagamento Aceitas</h3>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- PIX Card -->
+                <div class="premium-card p-5 flex flex-col items-start gap-3 hover:border-brand-primary/20 transition-all">
+                    <div class="w-9 h-9 rounded-full bg-blue-50 text-brand-primary flex items-center justify-center">
+                        <i data-lucide="qr-code" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-brand-secondary">PIX à Vista</h4>
+                        <p class="text-xs text-brand-muted mt-1 leading-relaxed">
+                            Melhor preço da tabela com desconto exclusivo imediato.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Card/Link Card -->
+                <div class="premium-card p-5 flex flex-col items-start gap-3 hover:border-brand-primary/20 transition-all">
+                    <div class="w-9 h-9 rounded-full bg-blue-50 text-brand-primary flex items-center justify-center">
+                        <i data-lucide="credit-card" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-brand-secondary">Cartão ou Link</h4>
+                        <p class="text-xs text-brand-muted mt-1 leading-relaxed">
+                            Parcele em até 12x via maquininha ou link de pagamento (com acréscimo de juros).
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Entrance + installments Card -->
+                <div class="premium-card p-5 flex flex-col items-start gap-3 hover:border-brand-primary/20 transition-all">
+                    <div class="w-9 h-9 rounded-full bg-blue-50 text-brand-primary flex items-center justify-center">
+                        <i data-lucide="percent" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-brand-secondary">Entrada + Saldo</h4>
+                        <p class="text-xs text-brand-muted mt-1 leading-relaxed">
+                            Facilite seu pagamento oferecendo uma entrada e parcelando o restante.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Bank Transfer Card -->
+                <div class="premium-card p-5 flex flex-col items-start gap-3 hover:border-brand-primary/20 transition-all">
+                    <div class="w-9 h-9 rounded-full bg-blue-50 text-brand-primary flex items-center justify-center">
+                        <i data-lucide="building" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-brand-secondary">TED / Transferência</h4>
+                        <p class="text-xs text-brand-muted mt-1 leading-relaxed">
+                            Pagamento via conta jurídica oficial da empresa.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== IMPORTANT DETAILS & INFO ==================== -->
+        <section class="premium-card p-6 flex flex-col md:flex-row gap-6 justify-between items-start">
+            <div class="space-y-2 flex-grow">
+                <h4 class="text-sm font-extrabold text-brand-secondary flex items-center gap-1.5">
+                    <i data-lucide="info" class="w-4 h-4 text-brand-primary"></i>
+                    Termos de Encomenda
+                </h4>
+                <ul class="text-xs text-brand-muted space-y-1.5 list-disc pl-5 leading-relaxed">
+                    <li>Prazo médio de entrega de até 15 dias úteis a contar da data de confirmação do sinal.</li>
+                    <li>Selo oficial de segurança: contrato de compra e venda assinado digitalmente pelas partes.</li>
+                    <li>Aparelhos 100% originais com garantia global Apple de 1 ano.</li>
+                </ul>
+            </div>
+
+            <!-- Shop Info details -->
+            <div class="space-y-3 flex-shrink-0 text-left md:text-right w-full md:w-auto border-t md:border-t-0 border-gray-100 pt-4 md:pt-0">
+                <h4 class="text-sm font-extrabold text-brand-secondary">Atendimento ao Cliente</h4>
+                <div class="space-y-1.5 text-xs text-brand-muted font-medium">
+                    <p class="flex items-center md:justify-end gap-2">
+                        <i data-lucide="phone" class="w-3.5 h-3.5 text-brand-primary"></i>
+                        (11) 99999-9999
+                    </p>
+                    <p class="flex items-center md:justify-end gap-2">
+                        <i data-lucide="instagram" class="w-3.5 h-3.5 text-brand-primary"></i>
+                        @alcance.imports
+                    </p>
+                    <p class="text-[10px] text-brand-primary font-bold">
+                        www.alcanceimports.com
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Footer Brand Tag -->
+    <footer class="text-center py-6 text-[10px] font-semibold text-brand-muted uppercase tracking-wider">
+        Alcance Imports © 2026 • Todos os direitos reservados.
+    </footer>
+
+    <!-- Custom Floating Toast alerts -->
+    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-brand-secondary text-white text-xs px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300 z-50">
+        <i data-lucide="check-circle" class="w-4 h-4 text-green-400"></i>
+        <span id="toast-text">Link copiado!</span>
+    </div>
+
+    <!-- ==================== JAVASCRIPT PROGRAMMING LAYER ==================== -->
+    <script>
+        // Multi-category complete product catalog (Fully configured with dynamic color swatches and high-fidelity image links!)
+        const DEFAULT_PRODUCTS = [
+            // iPhones
+            { 
+                category: "iphones", 
+                model: "iPhone 17E", 
+                storage: "256GB", 
+                cashPrice: "R$ 4.199,00", 
+                installmentPrice: "R$ 4.889,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Azul-céu", hex: "#95B3D7", img: "fotos iphones/17 azul.webp" },
+                    { name: "Lavanda", hex: "#D6D2E6", img: "fotos iphones/17 lavanda.webp" },
+                    { name: "Verde-teal", hex: "#A5C5C0", img: "fotos iphones/17 verde.webp" },
+                    { name: "Branco", hex: "#F2F2F4", img: "fotos iphones/17 branco.jpg" },
+                    { name: "Preto", hex: "#303032", img: "fotos iphones/17 preto.webp" }
+                ]
+            },
+            { 
+                category: "iphones", 
+                model: "iPhone 17", 
+                storage: "256GB", 
+                cashPrice: "R$ 5.299,00", 
+                installmentPrice: "R$ 6.169,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Azul-céu", hex: "#95B3D7", img: "fotos iphones/17 azul.webp" },
+                    { name: "Lavanda", hex: "#D6D2E6", img: "fotos iphones/17 lavanda.webp" },
+                    { name: "Verde-teal", hex: "#A5C5C0", img: "fotos iphones/17 verde.webp" },
+                    { name: "Branco", hex: "#F2F2F4", img: "fotos iphones/17 branco.jpg" },
+                    { name: "Preto", hex: "#303032", img: "fotos iphones/17 preto.webp" }
+                ]
+            },
+            { 
+                category: "iphones", 
+                model: "iPhone 17 Air", 
+                storage: "256GB", 
+                cashPrice: "R$ 6.299,00", 
+                installmentPrice: "R$ 7.329,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Azul-céu", hex: "#95B3D7", img: "fotos iphones/17 azul.webp" },
+                    { name: "Lavanda", hex: "#D6D2E6", img: "fotos iphones/17 lavanda.webp" },
+                    { name: "Verde-teal", hex: "#A5C5C0", img: "fotos iphones/17 verde.webp" },
+                    { name: "Branco", hex: "#F2F2F4", img: "fotos iphones/17 branco.jpg" },
+                    { name: "Preto", hex: "#303032", img: "fotos iphones/17 preto.webp" }
+                ]
+            },
+            { 
+                category: "iphones", 
+                model: "iPhone 17 Pro", 
+                storage: "256GB", 
+                cashPrice: "R$ 7.899,00", 
+                installmentPrice: "R$ 9.189,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Titânio Deserto", hex: "#C2B29F", img: "fotos iphones/17 pro deserto.png" },
+                    { name: "Titânio Preto", hex: "#232322", img: "fotos iphones/17 pro preto.png" },
+                    { name: "Titânio Natural", hex: "#A1A19A", img: "fotos iphones/17 pro natural.png" },
+                    { name: "Titânio Branco", hex: "#F2F2F2", img: "fotos iphones/17 pro branco.webp" },
+                    { name: "Titânio Azul", hex: "#3C4D5E", img: "fotos iphones/17 pro azul.webp" },
+                    { name: "Titânio Laranja", hex: "#D4815F", img: "fotos iphones/17 pro laranja.webp" }
+                ]
+            },
+            { 
+                category: "iphones", 
+                model: "iPhone 17 Pro Max", 
+                storage: "256GB", 
+                cashPrice: "R$ 8.599,00", 
+                installmentPrice: "R$ 9.999,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Titânio Deserto", hex: "#C2B29F", img: "fotos iphones/17 pro deserto.png" },
+                    { name: "Titânio Preto", hex: "#232322", img: "fotos iphones/17 pro preto.png" },
+                    { name: "Titânio Natural", hex: "#A1A19A", img: "fotos iphones/17 pro natural.png" },
+                    { name: "Titânio Branco", hex: "#F2F2F2", img: "fotos iphones/17 pro branco.webp" },
+                    { name: "Titânio Azul", hex: "#3C4D5E", img: "fotos iphones/17 pro azul.webp" },
+                    { name: "Titânio Laranja", hex: "#D4815F", img: "fotos iphones/17 pro laranja.webp" }
+                ]
+            },
+            { 
+                category: "iphones", 
+                model: "iPhone 17 Pro Max", 
+                storage: "512GB", 
+                cashPrice: "R$ 10.199,00", 
+                installmentPrice: "R$ 11.859,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Titânio Deserto", hex: "#C2B29F", img: "fotos iphones/17 pro deserto.png" },
+                    { name: "Titânio Preto", hex: "#232322", img: "fotos iphones/17 pro preto.png" },
+                    { name: "Titânio Natural", hex: "#A1A19A", img: "fotos iphones/17 pro natural.png" },
+                    { name: "Titânio Branco", hex: "#F2F2F2", img: "fotos iphones/17 pro branco.webp" },
+                    { name: "Titânio Azul", hex: "#3C4D5E", img: "fotos iphones/17 pro azul.webp" },
+                    { name: "Titânio Laranja", hex: "#D4815F", img: "fotos iphones/17 pro laranja.webp" }
+                ]
+            },
+            { 
+                category: "iphones", 
+                model: "iPhone 17 Pro Max", 
+                storage: "1TB", 
+                cashPrice: "R$ 10.999,00", 
+                installmentPrice: "R$ 12.789,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Titânio Deserto", hex: "#C2B29F", img: "fotos iphones/17 pro deserto.png" },
+                    { name: "Titânio Preto", hex: "#232322", img: "fotos iphones/17 pro preto.png" },
+                    { name: "Titânio Natural", hex: "#A1A19A", img: "fotos iphones/17 pro natural.png" },
+                    { name: "Titânio Branco", hex: "#F2F2F2", img: "fotos iphones/17 pro branco.webp" },
+                    { name: "Titânio Azul", hex: "#3C4D5E", img: "fotos iphones/17 pro azul.webp" },
+                    { name: "Titânio Laranja", hex: "#D4815F", img: "fotos iphones/17 pro laranja.webp" }
+                ]
+            },
+            { 
+                category: "iphones", 
+                model: "iPhone 16", 
+                storage: "128GB", 
+                cashPrice: "R$ 4.699,00", 
+                installmentPrice: "R$ 5.469,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Preto", hex: "#3C3D3A", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-16-black-select-202409?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Branco", hex: "#F2F2F4", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-16-white-select-202409?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Rosa", hex: "#E5B6C3", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-16-pink-select-202409?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Verde-teal", hex: "#9BC2B1", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-16-teal-select-202409?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Ultramarine", hex: "#4667B8", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-16-ultramarine-select-202409?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            { 
+                category: "iphones", 
+                model: "iPhone 15", 
+                storage: "128GB", 
+                cashPrice: "R$ 4.299,00", 
+                installmentPrice: "R$ 4.999,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Preto", hex: "#3C3D3A", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-black-select-202309?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Azul", hex: "#D2E1EC", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-blue-select-202309?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Verde", hex: "#D4E6D9", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-green-select-202309?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Amarelo", hex: "#FAF1C8", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-yellow-select-202309?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Rosa", hex: "#FAD5D9", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pink-select-202309?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+
+            // Apple Watch
+            {
+                category: "watches",
+                model: "Apple Watch SE2",
+                storage: "44mm GPS",
+                cashPrice: "R$ 1.699,00",
+                installmentPrice: "R$ 1.979,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Meia-noite", hex: "#2E3641", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MT2K3ref_VW_34FR+watch-case-44-aluminum-midnight-nc-se_VW_34FR_WF_CO?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Estelar", hex: "#F0E4D3", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MT2L3ref_VW_34FR+watch-case-44-aluminum-starlight-nc-se_VW_34FR_WF_CO?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MT2M3ref_VW_34FR+watch-case-44-aluminum-silver-nc-se_VW_34FR_WF_CO?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "watches",
+                model: "Apple Watch SE3",
+                storage: "40mm GPS",
+                cashPrice: "R$ 1.999,00",
+                installmentPrice: "R$ 2.329,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Meia-noite", hex: "#2E3641", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MT2K3ref_VW_34FR+watch-case-44-aluminum-midnight-nc-se_VW_34FR_WF_CO?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Estelar", hex: "#F0E4D3", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MT2L3ref_VW_34FR+watch-case-44-aluminum-starlight-nc-se_VW_34FR_WF_CO?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MT2M3ref_VW_34FR+watch-case-44-aluminum-silver-nc-se_VW_34FR_WF_CO?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "watches",
+                model: "Apple Watch S11",
+                storage: "42mm GPS",
+                cashPrice: "R$ 2.499,00",
+                installmentPrice: "R$ 2.909,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Preto Brilhante", hex: "#111111", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/s10-case-alum-jetblack-sport-band-black-s10?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Ouro Rosa", hex: "#E8C5C8", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/s10-case-alum-rose-sport-band-light-pink-s10?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/s10-case-alum-silver-sport-band-blue-s10?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "watches",
+                model: "Apple Watch S11",
+                storage: "46mm GPS",
+                cashPrice: "R$ 2.699,00",
+                installmentPrice: "R$ 3.139,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Preto Brilhante", hex: "#111111", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/s10-case-alum-jetblack-sport-band-black-s10?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Ouro Rosa", hex: "#E8C5C8", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/s10-case-alum-rose-sport-band-light-pink-s10?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/s10-case-alum-silver-sport-band-blue-s10?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+
+            // Mac Mini
+            {
+                category: "macmini",
+                model: "Mac Mini M2",
+                storage: "8GB / 256GB",
+                cashPrice: "R$ 4.950,00",
+                installmentPrice: "R$ 5.759,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mac-mini-hero-202301?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "macmini",
+                model: "Mac Mini M2",
+                storage: "8GB / 512GB",
+                cashPrice: "R$ 5.900,00",
+                installmentPrice: "R$ 6.869,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mac-mini-hero-202301?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "macmini",
+                model: "Mac Mini M4",
+                storage: "16GB / 256GB",
+                cashPrice: "R$ 7.550,00",
+                installmentPrice: "R$ 8.789,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mac-mini-hero-202410?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+
+            // MacBook Air
+            {
+                category: "macbookair",
+                model: "MacBook Air M4 13\"",
+                storage: "16GB / 256GB",
+                cashPrice: "R$ 7.900,00",
+                installmentPrice: "R$ 9.189,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Cinza Espacial", hex: "#535455", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-spacegray-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Meia-noite", hex: "#2E3641", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-midnight-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Estelar", hex: "#F0E4D3", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-starlight-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-silver-select-202402?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "macbookair",
+                model: "MacBook Air M4 15\"",
+                storage: "16GB / 256GB",
+                cashPrice: "R$ 9.150,00",
+                installmentPrice: "R$ 10.649,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Cinza Espacial", hex: "#535455", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-spacegray-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Meia-noite", hex: "#2E3641", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-midnight-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Estelar", hex: "#F0E4D3", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-starlight-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-silver-select-202402?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "macbookair",
+                model: "MacBook Air M4 13\"",
+                storage: "16GB / 512GB",
+                cashPrice: "R$ 8.900,00",
+                installmentPrice: "R$ 10.359,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Cinza Espacial", hex: "#535455", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-spacegray-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Meia-noite", hex: "#2E3641", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-midnight-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Estelar", hex: "#F0E4D3", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-starlight-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-silver-select-202402?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "macbookair",
+                model: "MacBook Air M4 13\"",
+                storage: "16GB / 1TB",
+                cashPrice: "R$ 9.300,00",
+                installmentPrice: "R$ 10.819,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Cinza Espacial", hex: "#535455", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-spacegray-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Meia-noite", hex: "#2E3641", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-midnight-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Estelar", hex: "#F0E4D3", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-starlight-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-silver-select-202402?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "macbookair",
+                model: "MacBook Air M5 13\"",
+                storage: "16GB / 512GB",
+                cashPrice: "R$ 8.400,00",
+                installmentPrice: "R$ 9.779,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Azul-céu", hex: "#95B3D7", img: "https://http2.mlstatic.com/D_NQ_NP_987326-MLA108121270073_032026-O.jpg" }
+                ]
+            },
+            {
+                category: "macbookair",
+                model: "MacBook Air M5 15\"",
+                storage: "16GB / 512GB",
+                cashPrice: "R$ 9.950,00",
+                installmentPrice: "R$ 11.579,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Azul-céu", hex: "#95B3D7", img: "https://http2.mlstatic.com/D_NQ_NP_987326-MLA108121270073_032026-O.jpg" }
+                ]
+            },
+            {
+                category: "macbookair",
+                model: "MacBook Air M5 13\"",
+                storage: "16GB / 1TB",
+                cashPrice: "R$ 9.900,00",
+                installmentPrice: "R$ 11.519,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Azul-céu", hex: "#95B3D7", img: "https://http2.mlstatic.com/D_NQ_NP_987326-MLA108121270073_032026-O.jpg" }
+                ]
+            },
+            {
+                category: "macbookair",
+                model: "MacBook Air M5 15\"",
+                storage: "24GB / 1TB",
+                cashPrice: "R$ 14.000,00",
+                installmentPrice: "R$ 16.289,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Azul-céu", hex: "#95B3D7", img: "https://http2.mlstatic.com/D_NQ_NP_987326-MLA108121270073_032026-O.jpg" }
+                ]
+            },
+
+            // MacBook Neo
+            {
+                category: "macbookneo",
+                model: "MacBook Neo 13\"",
+                storage: "8GB / 256GB",
+                cashPrice: "R$ 6.050,00",
+                installmentPrice: "R$ 7.039,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Cinza Espacial", hex: "#535455", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-spacegray-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-silver-select-202402?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "macbookneo",
+                model: "MacBook Neo 13\"",
+                storage: "8GB / 512GB",
+                cashPrice: "R$ 7.000,00",
+                installmentPrice: "R$ 8.149,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Cinza Espacial", hex: "#535455", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-spacegray-select-202402?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-silver-select-202402?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+
+            // MacBook Pro
+            {
+                category: "macbookpro",
+                model: "MacBook Pro M5 14\"",
+                storage: "16GB / 1TB",
+                cashPrice: "R$ 13.500,00",
+                installmentPrice: "R$ 15.700,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Preto Espacial", hex: "#1C1C1D", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-spaceblack-select-202410?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-silver-select-202410?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "macbookpro",
+                model: "MacBook Pro M5 14\"",
+                storage: "24GB / 1TB",
+                cashPrice: "R$ 14.900,00",
+                installmentPrice: "R$ 17.329,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Preto Espacial", hex: "#1C1C1D", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-spaceblack-select-202410?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-silver-select-202410?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "macbookpro",
+                model: "MacBook Pro M5 Pro 14\"",
+                storage: "24GB / 1TB",
+                cashPrice: "R$ 16.900,00",
+                installmentPrice: "R$ 19.659,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Preto Espacial", hex: "#1C1C1D", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-spaceblack-select-202410?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-silver-select-202410?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "macbookpro",
+                model: "MacBook Pro M5 Pro 14\"",
+                storage: "24GB / 2TB",
+                cashPrice: "R$ 20.500,00",
+                installmentPrice: "R$ 23.849,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Preto Espacial", hex: "#1C1C1D", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-spaceblack-select-202410?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-silver-select-202410?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            {
+                category: "macbookpro",
+                model: "MacBook Pro M5 Pro 16\"",
+                storage: "24GB / 1TB",
+                cashPrice: "R$ 19.900,00",
+                installmentPrice: "R$ 23.149,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Preto Espacial", hex: "#1C1C1D", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-spaceblack-select-202410?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-silver-select-202410?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+
+            // iPads
+            { 
+                category: "ipads", 
+                model: "iPad 11ª Geração (A16)", 
+                storage: "128GB Wi-Fi", 
+                cashPrice: "R$ 2.599,00", 
+                installmentPrice: "R$ 3.029,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Cinza Espacial", hex: "#535455", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-10th-gen-storage-select-202210-spacegray-wifi?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Azul", hex: "#C1D6E6", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-10th-gen-storage-select-202210-blue-wifi?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            { 
+                category: "ipads", 
+                model: "iPad Air M4", 
+                storage: "128GB Wi-Fi", 
+                cashPrice: "R$ 4.399,00", 
+                installmentPrice: "R$ 5.119,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Cinza Espacial", hex: "#535455", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-air-storage-select-202405-11inch-spacegray-wifi?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Azul", hex: "#C1D6E6", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-air-storage-select-202405-11inch-blue-wifi?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            { 
+                category: "ipads", 
+                model: "iPad Pro M5 11\"", 
+                storage: "256GB", 
+                cashPrice: "R$ 8.999,00", 
+                installmentPrice: "R$ 10.469,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Preto Espacial", hex: "#1C1C1D", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-pro-storage-select-202405-11inch-spaceblack-wifi?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-pro-storage-select-202405-11inch-silver-wifi?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            { 
+                category: "ipads", 
+                model: "iPad Pro M5 13\"", 
+                storage: "256GB", 
+                cashPrice: "R$ 9.299,00", 
+                installmentPrice: "R$ 10.819,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Preto Espacial", hex: "#1C1C1D", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-pro-storage-select-202405-11inch-spaceblack-wifi?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-pro-storage-select-202405-11inch-silver-wifi?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            { 
+                category: "ipads", 
+                model: "iPad Pro M5 13\"", 
+                storage: "256GB Wi-Fi + Cellular", 
+                cashPrice: "R$ 10.599,00", 
+                installmentPrice: "R$ 12.329,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Preto Espacial", hex: "#1C1C1D", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-pro-storage-select-202405-11inch-spaceblack-wifi?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-pro-storage-select-202405-11inch-silver-wifi?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            
+            // Acessórios
+            { 
+                category: "accessories", 
+                model: "AirPods Pro 3", 
+                storage: "Estojo USB-C", 
+                cashPrice: "R$ 1.799,00", 
+                installmentPrice: "R$ 2.099,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Branco", hex: "#FFFFFF", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MTJV3?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            { 
+                category: "accessories", 
+                model: "Apple Pencil Pro", 
+                storage: "Compatível M4/M2", 
+                cashPrice: "R$ 949,00", 
+                installmentPrice: "R$ 1.109,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Branco", hex: "#FFFFFF", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MX2D3?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            { 
+                category: "accessories", 
+                model: "Apple Pencil", 
+                storage: "Entrada USB-C", 
+                cashPrice: "R$ 849,00", 
+                installmentPrice: "R$ 989,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Branco", hex: "#FFFFFF", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MU8F3?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            { 
+                category: "accessories", 
+                model: "Magic Mouse 3", 
+                storage: "Recarregável", 
+                cashPrice: "R$ 849,00", 
+                installmentPrice: "R$ 989,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Branco", hex: "#FFFFFF", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MX053?wid=150&hei=150&fmt=jpeg" },
+                    { name: "Preto", hex: "#1C1C1D", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MX063?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            { 
+                category: "accessories", 
+                model: "Fonte Original Apple", 
+                storage: "20W USB-C", 
+                cashPrice: "R$ 199,00", 
+                installmentPrice: "R$ 229,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Branco", hex: "#FFFFFF", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MHXH3?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            { 
+                category: "accessories", 
+                model: "Cabo USB-C → Lightning Original Apple", 
+                storage: "1 metro", 
+                cashPrice: "R$ 179,00", 
+                installmentPrice: "R$ 209,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Branco", hex: "#FFFFFF", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MM0A3?wid=150&hei=150&fmt=jpeg" }
+                ]
+            },
+            { 
+                category: "accessories", 
+                model: "Cabo USB-C iPhone 15 Original Apple", 
+                storage: "Tecido Trançado", 
+                cashPrice: "R$ 189,00", 
+                installmentPrice: "R$ 219,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Branco", hex: "#FFFFFF", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MQKY3?wid=150&hei=150&fmt=jpeg" }
+                ]
+            }
+        ];
+
+        let products = [...DEFAULT_PRODUCTS];
+        
+        // Mode Controls
+        let editModeEnabled = true;
+        let isClientView = false;
+
+        // Meta structure describing our sections and header names
+        const SECTIONS_METADATA = [
+            { id: "iphones", title: "iPhones", icon: "smartphone", modelHeader: "Modelo do iPhone" },
+            { id: "watches", title: "Apple Watch", icon: "watch", modelHeader: "Modelo do Watch" },
+            { id: "macmini", title: "Mac Mini", icon: "monitor", modelHeader: "Modelo do Mac Mini" },
+            { id: "macbookair", title: "MacBook Air", icon: "laptop", modelHeader: "Modelo do MacBook Air" },
+            { id: "macbookneo", title: "MacBook Neo", icon: "laptop", modelHeader: "Modelo do MacBook Neo" },
+            { id: "macbookpro", title: "MacBook Pro", icon: "laptop", modelHeader: "Modelo do MacBook Pro" },
+            { id: "ipads", title: "iPads", icon: "tablet", modelHeader: "Modelo do iPad" },
+            { id: "accessories", title: "Acessórios", icon: "plug", modelHeader: "Acessório / Item" }
+        ];
+
+        // Load pricing data from local storage OR Base64 URL parameter
+        function loadState() {
+            const hasSharedData = loadDataFromUrl();
+            
+            if (!hasSharedData) {
+                const stored = localStorage.getItem("alcance_imports_pricing_interactive_colors");
+                if (stored) {
+                    try {
+                        let parsed = JSON.parse(stored);
+                        let updated = false;
+                        
+                        // Smart Merge: add new products and update empty image URLs from defaults
+                        DEFAULT_PRODUCTS.forEach(defProd => {
+                            const existing = parsed.find(
+                                p => p.category === defProd.category && 
+                                     p.model === defProd.model && 
+                                     p.storage === defProd.storage
+                            );
+                            if (!existing) {
+                                parsed.push(JSON.parse(JSON.stringify(defProd)));
+                                updated = true;
+                            } else {
+                                // Update color images if stored version has empty or outdated/broken img
+                                if (defProd.colors) {
+                                    defProd.colors.forEach((defColor, cIdx) => {
+                                        if (existing.colors && existing.colors[cIdx]) {
+                                            const currentImg = existing.colors[cIdx].img;
+                                            const newImg = defColor.img;
+                                            if (!currentImg || 
+                                                currentImg.includes("store.storeimages.apple.com") || 
+                                                currentImg.includes("-202403") || 
+                                                currentImg.includes("-202310") || 
+                                                (existing.category === "macbookair" && !currentImg.includes("202402") && !currentImg.includes("mlstatic"))) {
+                                                if (currentImg !== newImg) {
+                                                    existing.colors[cIdx].img = newImg;
+                                                    updated = true;
+                                                }
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        });
+
+                        products = parsed;
+                        
+                        if (updated) {
+                            saveLocalState();
+                        }
+                    } catch(e) {
+                        console.error("Erro ao carregar dados do LocalStorage", e);
+                    }
+                }
+                
+                editModeEnabled = true;
+                isClientView = false;
+            }
+            
+            updateUIModes();
+            renderAllSections();
+
+            // Restore showcase toggle state
+            const showStored = localStorage.getItem("alcance_imports_showcase_visible");
+            if (showStored !== null) {
+                toggleShowcaseView(showStored === "true");
+            } else {
+                toggleShowcaseView(true);
+            }
+        }
+
+        // Parse and decode client custom pricing data from URL hash
+        function loadDataFromUrl() {
+            const hash = window.location.hash;
+            if (hash && hash.startsWith("#data=")) {
+                try {
+                    const base64Data = hash.substring(6);
+                    const decodedJson = decodeURIComponent(escape(atob(base64Data)));
+                    const parsedProducts = JSON.parse(decodedJson);
+                    if (Array.isArray(parsedProducts)) {
+                        products = parsedProducts;
+                        editModeEnabled = false;
+                        isClientView = true;
+                        return true;
+                    }
+                } catch (e) {
+                    console.error("Erro ao descriptografar catálogo compartilhado:", e);
+                }
+            }
+            return false;
+        }
+
+        // Generate Base64 sharing URL and copy it to clipboard
+        function generateShareLink() {
+            try {
+                const dataString = JSON.stringify(products);
+                const base64Data = btoa(unescape(encodeURIComponent(dataString)));
+                const shareUrl = `${window.location.origin}${window.location.pathname}#data=${base64Data}`;
+                
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    showToast("Link de orçamentos copiado! Compartilhe com o cliente.");
+                }).catch(() => {
+                    const dummy = document.createElement("input");
+                    document.body.appendChild(dummy);
+                    dummy.value = shareUrl;
+                    dummy.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(dummy);
+                    showToast("Link copiado!");
+                });
+            } catch (err) {
+                console.error("Erro ao criar link", err);
+                showToast("Erro ao gerar link de compartilhamento.");
+            }
+        }
+
+        // Adjust visible elements based on Mode (Admin vs Client)
+        function updateUIModes() {
+            const adminToolbar = document.getElementById("admin-toolbar");
+            const btnOpenAdmin = document.getElementById("btn-open-admin");
+            const adminPreviewIndicator = document.getElementById("admin-preview-indicator");
+            const body = document.body;
+
+            if (editModeEnabled) {
+                adminToolbar.style.display = "flex";
+                btnOpenAdmin.style.display = "none";
+                adminPreviewIndicator.style.display = "none";
+                body.classList.add("admin-editable");
+            } else {
+                adminToolbar.style.display = "none";
+                body.classList.remove("admin-editable");
+                
+                if (isClientView) {
+                    btnOpenAdmin.style.display = "flex";
+                    adminPreviewIndicator.style.display = "none";
+                } else {
+                    btnOpenAdmin.style.display = "none";
+                    adminPreviewIndicator.style.display = "flex";
+                }
+            }
+        }
+
+        // Switch modes helpers
+        function switchToClientPreview() {
+            editModeEnabled = false;
+            updateUIModes();
+            renderAllSections();
+            showToast("Visualização do Cliente ativada.");
+        }
+
+        function enterAdminMode() {
+            if (window.location.hash) {
+                window.location.hash = "";
+            }
+            editModeEnabled = true;
+            isClientView = false;
+            updateUIModes();
+            loadState();
+            showToast("Modo de Edição ativado.");
+        }
+
+        // Dynamic color changer when circles are clicked!
+        function changeProductColor(globalIndex, colorIndex) {
+            products[globalIndex].selectedColorIdx = colorIndex;
+            saveLocalState();
+            renderAllSections();
+        }
+
+        // Toggle state for showcase view
+        let showcaseVisible = true;
+        function toggleShowcaseView(show) {
+            showcaseVisible = show;
+            const showcaseGrid = document.getElementById("showcase-grid");
+            const btnShowcase = document.getElementById("btn-view-showcase");
+            const btnTable = document.getElementById("btn-view-table-only");
+            
+            if (!showcaseGrid || !btnShowcase || !btnTable) return;
+            
+            if (show) {
+                showcaseGrid.style.display = "grid";
+                btnShowcase.className = "px-3.5 py-1.5 rounded-full text-xs font-bold text-white bg-brand-primary transition-all flex items-center gap-1 shadow-sm";
+                btnTable.className = "px-3.5 py-1.5 rounded-full text-xs font-semibold text-brand-muted hover:text-brand-secondary transition-all flex items-center gap-1";
+            } else {
+                showcaseGrid.style.display = "none";
+                btnShowcase.className = "px-3.5 py-1.5 rounded-full text-xs font-semibold text-brand-muted hover:text-brand-secondary transition-all flex items-center gap-1";
+                btnTable.className = "px-3.5 py-1.5 rounded-full text-xs font-bold text-white bg-brand-primary transition-all flex items-center gap-1 shadow-sm";
+            }
+            localStorage.setItem("alcance_imports_showcase_visible", show);
+        }
+
+        // Update storage capacity option for a product
+        function updateStorageOption(globalIndex, newStorage) {
+            products[globalIndex].storage = newStorage;
+            saveLocalState();
+            renderAllSections();
+            showToast(`Capacidade alterada para ${newStorage}!`);
+        }
+
+        // Render the high-fidelity visual cards for iPhones matching the user's screenshot
+        function renderShowcase() {
+            const showcaseGrid = document.getElementById("showcase-grid");
+            if (!showcaseGrid) return;
+            
+            showcaseGrid.innerHTML = "";
+            
+            // Filter iPhones from products to display in showcase
+            const showcaseIphones = products.filter(p => p.category === "iphones");
+            
+            if (showcaseIphones.length === 0) {
+                showcaseGrid.innerHTML = `
+                    <div class="col-span-full py-8 text-center text-xs text-brand-muted italic bg-white border border-gray-100 rounded-3xl">
+                        Nenhum iPhone cadastrado para exibir na vitrine.
+                    </div>
+                `;
+                return;
+            }
+            
+            showcaseIphones.forEach(p => {
+                const globalIndex = products.findIndex(item => item === p);
+                const pColors = p.colors || [];
+                const pSelectedIdx = p.selectedColorIdx !== undefined ? p.selectedColorIdx : 0;
+                const activeColor = pColors[pSelectedIdx] || { name: "Padrão", hex: "#FFFFFF", img: "" };
+                const activeImage = activeColor.img || "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MHXH3?wid=150&hei=150&fmt=jpeg";
+                
+                // Color swatches HTML
+                let swatchesHtml = "";
+                if (pColors.length > 0) {
+                    swatchesHtml = `
+                        <div class="flex items-center justify-center gap-2.5 mt-3">
+                            ${pColors.map((color, cIdx) => {
+                                const isActive = (pSelectedIdx === cIdx);
+                                // Authentic Apple Store ring outline around clicked swatch with gap
+                                const ringClass = isActive
+                                    ? 'ring-2 ring-brand-primary ring-offset-2 scale-110 shadow-sm'
+                                    : 'border border-gray-200 hover:scale-105';
+                                return `
+                                    <button onclick="changeProductColor(${globalIndex}, ${cIdx})" 
+                                            class="w-5 h-5 rounded-full transition-all duration-300 ${ringClass}" 
+                                            style="background-color: ${color.hex};" 
+                                            title="${color.name}">
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+                        <div class="text-[10px] font-bold text-gray-500 text-center mt-2 tracking-tight">${activeColor.name}</div>
+                    `;
+                }
+                
+                // Active options editing or selecting
+                let storageButtonsHtml = `
+                    <span class="px-2.5 py-1 text-[10px] rounded-full border bg-brand-primary text-white font-bold border-brand-primary shadow-sm shadow-blue-500/10">
+                        ${p.storage}
+                    </span>
+                `;
+                
+                const ctaMessage = encodeURIComponent(`Olá! Quero encomendar o ${p.model} na cor ${activeColor.name} com capacidade ${p.storage} pelo preço à vista de ${p.cashPrice}.`);
+                const directWaLink = `https://wa.me/5511999999999?text=${ctaMessage}`;
+                
+                // Showcase card HTML structure matching the user's upload
+                showcaseGrid.innerHTML += `
+                    <div class="premium-card p-5 flex flex-col justify-between items-center text-center relative overflow-hidden group">
+                        <!-- Top details -->
+                        <div class="w-full flex justify-between items-start mb-2 z-10">
+                            <span class="px-2.5 py-1 rounded-full bg-blue-50 text-brand-primary text-[9px] font-bold tracking-wider uppercase border border-blue-100">
+                                Oficial Apple
+                            </span>
+                            <div class="flex gap-1.5 no-print">
+                                ${editModeEnabled ? `
+                                    <button onclick="editImageUrl(${globalIndex})" class="p-1.5 text-gray-400 hover:text-brand-primary bg-gray-50 hover:bg-blue-50 border border-gray-100 rounded-lg transition-colors" title="Editar Link de Imagem">
+                                        <i data-lucide="image" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Image Section -->
+                        <div class="w-full h-48 sm:h-52 flex items-center justify-center relative mb-4">
+                            <div class="absolute inset-0 bg-gradient-to-b from-transparent to-gray-50/20 rounded-3xl -z-10 group-hover:scale-105 transition-transform duration-500"></div>
+                            <img src="${activeImage}" alt="${p.model}" class="max-h-full max-w-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.06)] hover:scale-105 transition-transform duration-500 z-10">
+                        </div>
+
+                        <!-- Interactive Selector Section -->
+                        <div class="w-full space-y-4">
+                            <!-- Swatches -->
+                            <div>
+                                ${swatchesHtml}
+                            </div>
+
+                            <!-- Model Title -->
+                            <div class="space-y-1">
+                                <h4 class="text-base font-black tracking-tight text-brand-secondary">
+                                    <span contenteditable="${editModeEnabled}" onblur="updateProductValue(${globalIndex}, 'model', this.textContent)">${p.model}</span>
+                                </h4>
+                                
+                                <!-- Storage capacity selectors -->
+                                <div class="flex items-center justify-center gap-1.5 py-1">
+                                    ${storageButtonsHtml}
+                                </div>
+                            </div>
+
+                            <!-- Pricing -->
+                            <div class="bg-gray-50/80 border border-gray-100 rounded-2xl py-2.5 px-4 text-center space-y-0.5">
+                                <div class="text-[9px] font-bold text-brand-muted uppercase tracking-wider">Valor Especial PIX</div>
+                                <div class="text-lg font-black text-brand-primary tracking-tight">
+                                    <span contenteditable="${editModeEnabled}" onblur="updateProductValue(${globalIndex}, 'cashPrice', this.textContent)">${p.cashPrice}</span>
+                                </div>
+                                <div class="text-[10px] text-gray-500 font-semibold">
+                                    ou até 12x de <span contenteditable="${editModeEnabled}" onblur="updateProductValue(${globalIndex}, 'installmentPrice', this.textContent)">${p.installmentPrice}</span>
+                                </div>
+                            </div>
+
+                            <!-- Direct CTA Button -->
+                            <a href="${directWaLink}" target="_blank" class="w-full py-2.5 rounded-xl bg-brand-secondary hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all duration-300 transform active:scale-95 no-print">
+                                <i data-lucide="phone" class="w-3.5 h-3.5 text-green-400"></i>
+                                Encomendar este Modelo
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            lucide.createIcons();
+        }
+
+        // Render pricing lists grouped by sections on the scrolling catalog page
+        function renderAllSections() {
+            renderShowcase();
+            const container = document.getElementById("pricing-sections-container");
+            container.innerHTML = "";
+
+            SECTIONS_METADATA.forEach(section => {
+                const sectionProducts = products.filter(p => (p.category || "iphones") === section.id);
+                
+                if (!editModeEnabled && sectionProducts.length === 0) return;
+
+                const sectionCard = document.createElement("div");
+                sectionCard.className = "premium-card p-5 md:p-6 space-y-4 section-card";
+                sectionCard.setAttribute("data-section-id", section.id);
+
+                const addBtnHtml = editModeEnabled ? `
+                    <button onclick="addNewProductRow('${section.id}')" class="px-3 py-1.5 text-xs font-semibold text-brand-primary bg-blue-50 border border-blue-100 hover:bg-blue-100 rounded-lg flex items-center gap-1.5 transition-colors">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                        Adicionar Item
+                    </button>
+                ` : "";
+
+                const mobileSwipeHint = `
+                    <div class="sm:hidden flex items-center justify-center gap-1.5 py-1.5 px-3 bg-blue-50/50 border border-blue-100/50 rounded-xl text-brand-primary text-[10px] font-bold text-center animate-pulse no-print mb-2">
+                        <i data-lucide="chevrons-left-right" class="w-3.5 h-3.5"></i>
+                        <span>Deslize para a lateral para ver preços parcelados</span>
+                    </div>
+                `;
+
+                let tableRowsHtml = "";
+                sectionProducts.forEach(p => {
+                    const globalIndex = products.findIndex(item => item === p);
+                    
+                    const deleteBtnHtml = editModeEnabled ? `
+                        <td class="py-4 px-2 text-center no-print w-12 admin-control-col">
+                            <button onclick="removeProductRow(${globalIndex})" class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-full transition-colors font-semibold" title="Remover Produto">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </td>
+                    ` : `<td class="hidden admin-control-col"></td>`;
+
+                    // Generate Apple-style color circles
+                    const pColors = p.colors || [];
+                    const pSelectedIdx = p.selectedColorIdx !== undefined ? p.selectedColorIdx : 0;
+                    
+                    let colorsSelectorHtml = "";
+
+                    // Admin only action to edit custom image URL directly on double click
+                    const imageInputHtml = editModeEnabled ? `
+                        <div class="text-[9px] text-blue-500 font-mono mt-1 select-none cursor-pointer truncate max-w-[120px]" title="Dê um duplo clique para alterar a imagem ativa de forma manual" ondblclick="editImageUrl(${globalIndex})">URL Imagem</div>
+                    ` : "";
+
+                    // Find active color image or use default
+                    const activeImage = (pColors.length > 0 && pColors[pSelectedIdx].img) ? pColors[pSelectedIdx].img : (p.image || "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MHXH3?wid=150&hei=150&fmt=jpeg");
+
+                    tableRowsHtml += `
+                        <tr class="hover:bg-gray-50/50 transition-colors duration-150 product-row">
+                            <td class="py-3 px-6 font-bold text-gray-900 whitespace-nowrap">
+                                <div class="flex items-center gap-4">
+                                    <!-- Interactive Thumbnail container -->
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-100 flex-shrink-0 p-1">
+                                            <img src="${activeImage}" alt="${p.model}" class="max-h-full max-w-full object-contain transition-all duration-300 transform hover:scale-105">
+                                        </div>
+                                        ${colorsSelectorHtml}
+                                    </div>
+                                    <div>
+                                        <span contenteditable="${editModeEnabled}" onblur="updateProductValue(${globalIndex}, 'model', this.textContent)">${p.model}</span>
+                                        ${imageInputHtml}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4 font-semibold text-gray-600 whitespace-nowrap" contenteditable="${editModeEnabled}" onblur="updateProductValue(${globalIndex}, 'storage', this.textContent)">${p.storage}</td>
+                            <td class="py-3 px-4 text-right font-black text-brand-primary text-base whitespace-nowrap" contenteditable="${editModeEnabled}" onblur="updateProductValue(${globalIndex}, 'cashPrice', this.textContent)">${p.cashPrice}</td>
+                            <td class="py-3 px-6 text-right font-bold text-gray-900 whitespace-nowrap" contenteditable="${editModeEnabled}" onblur="updateProductValue(${globalIndex}, 'installmentPrice', this.textContent)">${p.installmentPrice}</td>
+                            ${deleteBtnHtml}
+                        </tr>
+                    `;
+                });
+
+                // Assemble HTML card block
+                sectionCard.innerHTML = `
+                    <!-- Header Section Inside Card -->
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-blue-50 text-brand-primary flex items-center justify-center">
+                                <i data-lucide="${section.icon}" class="w-4 h-4"></i>
+                            </div>
+                            <h3 class="text-base font-extrabold text-brand-secondary uppercase tracking-tight">${section.title}</h3>
+                        </div>
+                        ${addBtnHtml}
+                    </div>
+
+                    <!-- Swipe hint for mobile users -->
+                    ${mobileSwipeHint}
+
+                    <!-- Scroll Table Container -->
+                    <div class="overflow-x-auto responsive-scrollbar w-full border border-gray-100 rounded-2xl">
+                        <table class="w-full text-left border-collapse min-w-[650px] whitespace-nowrap">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-200/60 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    <th class="py-4 px-6">${section.modelHeader}</th>
+                                    <th class="py-4 px-4">Capacidade / Specs</th>
+                                    <th class="py-4 px-4 text-right">À Vista (PIX)</th>
+                                    <th class="py-4 px-6 text-right">Até 12x c/ juros</th>
+                                    <th class="py-4 px-2 text-center no-print w-12 admin-control-col" style="${editModeEnabled ? 'display: table-cell;' : 'display: none;'}"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100/80 text-xs sm:text-sm text-gray-800">
+                                ${tableRowsHtml === "" ? `
+                                    <tr>
+                                        <td colspan="5" class="py-6 text-center text-xs text-brand-muted italic">
+                                            Nenhum item cadastrado nesta seção. Clique em "Adicionar Item" acima para começar.
+                                        </td>
+                                    </tr>
+                                ` : tableRowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                container.appendChild(sectionCard);
+            });
+
+            syncWhatsAppLink();
+            lucide.createIcons();
+        }
+
+        // Global search input filter across all table sections
+        function filterModels(val) {
+            const query = val.toLowerCase().trim();
+            const cards = document.querySelectorAll(".section-card");
+            
+            cards.forEach(card => {
+                const rows = card.querySelectorAll(".product-row");
+                let visibleRowsCount = 0;
+                
+                rows.forEach(row => {
+                    const model = row.cells[0].querySelector('span').textContent.toLowerCase();
+                    const storage = row.cells[1].textContent.toLowerCase();
+                    if (model.includes(query) || storage.includes(query)) {
+                        row.style.display = "table-row";
+                        visibleRowsCount++;
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+
+                if (visibleRowsCount === 0 && query !== "") {
+                    card.style.display = "none";
+                } else {
+                    card.style.display = "block";
+                }
+            });
+        }
+
+        // Add a new row to a specific section category with custom color swatches seeded automatically
+        function addNewProductRow(category) {
+            let template = {
+                category: category,
+                model: "Novo Modelo",
+                storage: "128GB",
+                cashPrice: "R$ 0,00",
+                installmentPrice: "R$ 0,00",
+                selectedColorIdx: 0,
+                colors: [
+                    { name: "Prateado", hex: "#E3E4E5", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MHXH3?wid=150&hei=150&fmt=jpeg" }
+                ]
+            };
+
+            if (category === "iphones") {
+                template.model = "iPhone 17 Pro";
+                template.colors = [
+                    { name: "Titânio Natural", hex: "#A1A19A", img: "fotos iphones/17 pro natural.png" },
+                    { name: "Titânio Deserto", hex: "#C2B29F", img: "fotos iphones/17 pro deserto.png" },
+                    { name: "Titânio Preto", hex: "#232322", img: "fotos iphones/17 pro preto.png" }
+                ];
+            } else if (category === "macbookair" || category === "macbookneo" || category === "macbookpro") {
+                template.model = "Novo MacBook";
+                template.storage = "16GB / 512GB";
+                template.colors = [
+                    { name: "Cinza Espacial", hex: "#535455", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-spacegray-select-202402?wid=150&hei=150&fmt=jpeg" }
+                ];
+            } else if (category === "macmini") {
+                template.model = "Mac Mini M4";
+                template.storage = "16GB / 256GB";
+            } else if (category === "watches") {
+                template.model = "Apple Watch S11";
+                template.storage = "46mm GPS";
+                template.colors = [
+                    { name: "Preto Brilhante", hex: "#111111", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/s10-case-alum-jetblack-sport-band-black-s10?wid=150&hei=150&fmt=jpeg" }
+                ];
+            } else if (category === "ipads") {
+                template.model = "iPad Pro M5";
+                template.colors = [
+                    { name: "Preto Espacial", hex: "#1C1C1D", img: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-pro-storage-select-202405-11inch-spaceblack-wifi?wid=150&hei=150&fmt=jpeg" }
+                ];
+            }
+
+            products.push(template);
+            saveLocalState();
+            renderAllSections();
+            showToast("Item inserido na seção correspondente!");
+        }
+
+        // Action helper to edit image URLs dynamically for custom admin needs
+        function editImageUrl(index) {
+            const p = products[index];
+            const pSelectedIdx = p.selectedColorIdx || 0;
+            const currentUrl = p.colors && p.colors.length > 0 ? p.colors[pSelectedIdx].img : "";
+            
+            const newUrl = prompt(`Insira a URL da imagem oficial para a cor "${p.colors[pSelectedIdx].name}":`, currentUrl);
+            if (newUrl !== null) {
+                if (p.colors && p.colors.length > 0) {
+                    p.colors[pSelectedIdx].img = newUrl.trim();
+                } else {
+                    p.image = newUrl.trim();
+                }
+                saveLocalState();
+                renderAllSections();
+                showToast("URL da imagem da cor atualizada!");
+            }
+        }
+
+        // Delete product row
+        function removeProductRow(globalIndex) {
+            products.splice(globalIndex, 1);
+            saveLocalState();
+            renderAllSections();
+            showToast("Item removido.");
+        }
+
+        // Reset to initial standard items
+        function resetToDefaults() {
+            if (confirm("Deseja restaurar a tabela de preços para todos os padrões com as fotos oficiais e seletores de cores interativos?")) {
+                products = [...DEFAULT_PRODUCTS.map(p => ({
+                    ...p,
+                    colors: p.colors ? p.colors.map(c => ({...c})) : []
+                }))];
+                saveLocalState();
+                renderAllSections();
+                showToast("Catálogo inicial restaurado!");
+            }
+        }
+
+        // Save active array to local storage
+        function saveLocalState() {
+            localStorage.setItem("alcance_imports_pricing_interactive_colors", JSON.stringify(products));
+        }
+
+        // Live sync updates made on blur
+        function updateProductValue(globalIndex, field, text) {
+            products[globalIndex][field] = text.trim();
+            saveLocalState();
+            syncWhatsAppLink();
+        }
+
+        // Automatically configure WhatsApp link with active models pricing grouped by category and active color selection
+        function syncWhatsAppLink() {
+            const waLink = document.getElementById("whatsapp-link");
+            let message = "Olá Alcance Imports! Gostaria de consultar sobre a encomenda dos seguintes itens da tabela:\n\n";
+            
+            const categoriesMap = {
+                "iphones": "📱 iPhones",
+                "watches": "⌚ Apple Watches",
+                "macmini": "💻 Mac Mini",
+                "macbookair": "💻 MacBook Air",
+                "macbookneo": "💻 MacBook Neo",
+                "macbookpro": "💻 MacBook Pro",
+                "ipads": "📟 iPads",
+                "accessories": "🔌 Acessórios"
+            };
+
+            Object.keys(categoriesMap).forEach(catKey => {
+                const catProducts = products.filter(p => (p.category || "iphones") === catKey);
+                if (catProducts.length > 0) {
+                    message += `*${categoriesMap[catKey]}*:\n`;
+                    catProducts.forEach(p => {
+                        const activeColorName = p.colors && p.colors.length > 0 ? ` [Cor: ${p.colors[p.selectedColorIdx || 0].name}]` : "";
+                        message += `- ${p.model}${activeColorName} (${p.storage}): À Vista ${p.cashPrice} / Parcelado ${p.installmentPrice}\n`;
+                    });
+                    message += "\n";
+                }
+            });
+            
+            message += "Fico no aguardo do retorno para fecharmos!";
+            const encodedMsg = encodeURIComponent(message);
+            waLink.href = `https://wa.me/5511999999999?text=${encodedMsg}`;
+        }
+
+        // Floating dynamic notifications
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            const text = document.getElementById("toast-text");
+            
+            text.textContent = msg;
+            toast.style.opacity = "1";
+            toast.style.transform = "translateX(-50%) translateY(-10px)";
+            
+            setTimeout(() => {
+                toast.style.opacity = "0";
+                toast.style.transform = "translateX(-50%) translateY(0)";
+            }, 3500);
+        }
+
+        // Start
+        window.addEventListener("DOMContentLoaded", loadState);
+    </script>
+</body>
+</html>
