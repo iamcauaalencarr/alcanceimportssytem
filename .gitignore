@@ -22,3 +22,27 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ==============================================
+# ARQUIVOS SENSÍVEIS — NÃO VERSIONAR
+# ==============================================
+
+# Manual operacional (contém PIN admin e links internos)
+"INSTRUÇÕES CONTRATO.MD"
+INSTRUÇÕES CONTRATO.MD
+
+# Dados reais de clientes (CPF, assinaturas digitais)
+src/contracts-data.json
+
+# Configurações sensíveis (PIN admin, WhatsApp, taxas)
+src/settings-data.json
+
+# Pasta de terceiros (não faz parte do projeto)
+awesome-claude-skills-master/
+
+# Arquivos temporários de desenvolvimento
+scratch/
+
+# Tabela de valores interna
+"tabela de valores"
+tabela de valores
