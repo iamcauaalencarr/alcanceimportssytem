@@ -256,8 +256,15 @@ export default function ContractSigningFlow({
   const stepOrder = allSteps.map(s => s.key);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in font-sans">
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl relative border border-gray-150 dark:border-zinc-800 flex flex-col my-8 max-h-[90vh]">
+    <div
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in font-sans"
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <div
+        className="bg-white dark:bg-zinc-900 rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl relative border border-gray-150 dark:border-zinc-800 flex flex-col my-8 max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-150 dark:border-zinc-800 pb-4 mb-4 flex-shrink-0">
@@ -320,6 +327,8 @@ export default function ContractSigningFlow({
                   <label className="text-[10px] font-bold uppercase tracking-wider text-brand-muted dark:text-zinc-400">Nome Completo *</label>
                   <input type="text" placeholder="Ex: João da Silva" value={clientData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                    onClick={(e) => e.stopPropagation()}
                     className={`w-full text-xs bg-gray-50 dark:bg-zinc-800 border rounded-xl px-3 py-2.5 text-brand-secondary dark:text-white focus:outline-none ${errors.name ? 'border-red-500' : 'border-gray-200 dark:border-zinc-700 focus:border-brand-primary'}`}
                   />
                   {errors.name && <p className="text-[10px] text-red-500 font-bold flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.name}</p>}
@@ -328,6 +337,8 @@ export default function ContractSigningFlow({
                   <label className="text-[10px] font-bold uppercase tracking-wider text-brand-muted dark:text-zinc-400">CPF *</label>
                   <input type="text" placeholder="000.000.000-00" value={clientData.cpf}
                     onChange={(e) => handleInputChange('cpf', e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                    onClick={(e) => e.stopPropagation()}
                     className={`w-full text-xs bg-gray-50 dark:bg-zinc-800 border rounded-xl px-3 py-2.5 text-brand-secondary dark:text-white focus:outline-none ${errors.cpf ? 'border-red-500' : 'border-gray-200 dark:border-zinc-700 focus:border-brand-primary'}`}
                   />
                   {errors.cpf && <p className="text-[10px] text-red-500 font-bold flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.cpf}</p>}
@@ -336,6 +347,8 @@ export default function ContractSigningFlow({
                   <label className="text-[10px] font-bold uppercase tracking-wider text-brand-muted dark:text-zinc-400">WhatsApp / Celular *</label>
                   <input type="text" placeholder="(00) 00000-0000" value={clientData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                    onClick={(e) => e.stopPropagation()}
                     className={`w-full text-xs bg-gray-50 dark:bg-zinc-800 border rounded-xl px-3 py-2.5 text-brand-secondary dark:text-white focus:outline-none ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-zinc-700 focus:border-brand-primary'}`}
                   />
                   {errors.phone && <p className="text-[10px] text-red-500 font-bold flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.phone}</p>}
@@ -344,6 +357,8 @@ export default function ContractSigningFlow({
                   <label className="text-[10px] font-bold uppercase tracking-wider text-brand-muted dark:text-zinc-400">E-mail (Opcional)</label>
                   <input type="email" placeholder="cliente@exemplo.com" value={clientData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-brand-secondary dark:text-white focus:outline-none focus:border-brand-primary"
                   />
                 </div>
@@ -352,6 +367,8 @@ export default function ContractSigningFlow({
                 <label className="text-[10px] font-bold uppercase tracking-wider text-brand-muted dark:text-zinc-400">Endereço de Entrega *</label>
                 <input type="text" placeholder="Rua, número, bairro, cidade, CEP" value={clientData.address}
                   onChange={(e) => handleInputChange('address', e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                  onClick={(e) => e.stopPropagation()}
                   className={`w-full text-xs bg-gray-50 dark:bg-zinc-800 border rounded-xl px-3 py-2.5 text-brand-secondary dark:text-white focus:outline-none ${errors.address ? 'border-red-500' : 'border-gray-200 dark:border-zinc-700 focus:border-brand-primary'}`}
                 />
                 {errors.address && <p className="text-[10px] text-red-500 font-bold flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.address}</p>}
@@ -360,6 +377,7 @@ export default function ContractSigningFlow({
                 <label className="text-[10px] font-bold uppercase tracking-wider text-brand-muted dark:text-zinc-400">Observações Adicionais</label>
                 <textarea placeholder="Observações de entrega ou especificações..." value={clientData.observations}
                   onChange={(e) => handleInputChange('observations', e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
                   rows={3} className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-2xl px-3 py-2.5 text-brand-secondary dark:text-white focus:outline-none focus:border-brand-primary resize-none"
                 />
               </div>

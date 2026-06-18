@@ -891,8 +891,15 @@ export default function AdminContractsTab({
 
       {/* Contract Detail View Modal */}
       {selectedContract && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-3xl w-full p-6 md:p-8 shadow-2xl relative border border-gray-100 dark:border-zinc-800 flex flex-col my-8 max-h-[90vh]">
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-3xl max-w-3xl w-full p-6 md:p-8 shadow-2xl relative border border-gray-100 dark:border-zinc-800 flex flex-col my-8 max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-gray-150 dark:border-zinc-800 pb-4 mb-4 flex-shrink-0">
@@ -1236,8 +1243,15 @@ export default function AdminContractsTab({
 
       {/* CREATE DRAFT CONTRACT MODAL */}
       {isCreating && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-3xl w-full p-6 md:p-8 shadow-2xl relative border border-gray-150 dark:border-zinc-800 flex flex-col my-8 max-h-[90vh]">
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-3xl max-w-3xl w-full p-6 md:p-8 shadow-2xl relative border border-gray-150 dark:border-zinc-800 flex flex-col my-8 max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             
             {/* Header */}
             <div className="flex items-center justify-between border-b border-gray-150 dark:border-zinc-800 pb-4 mb-4 flex-shrink-0">
@@ -1270,6 +1284,8 @@ export default function AdminContractsTab({
                       placeholder="Ex: Ana Souza"
                       value={clientForm.name}
                       onChange={(e) => handleClientFormChange('name', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                      onClick={(e) => e.stopPropagation()}
                       className={`w-full text-xs bg-gray-50 dark:bg-zinc-800 border rounded-xl px-3 py-2.5 focus:outline-none ${errors.name ? 'border-red-500' : 'border-gray-200 dark:border-zinc-700 focus:border-brand-primary'}`}
                     />
                   </div>
@@ -1280,6 +1296,8 @@ export default function AdminContractsTab({
                       placeholder="000.000.000-00"
                       value={clientForm.cpf}
                       onChange={(e) => handleClientFormChange('cpf', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                      onClick={(e) => e.stopPropagation()}
                       className={`w-full text-xs bg-gray-50 dark:bg-zinc-800 border rounded-xl px-3 py-2.5 focus:outline-none ${errors.cpf ? 'border-red-500' : 'border-gray-200 dark:border-zinc-700 focus:border-brand-primary'}`}
                     />
                   </div>
@@ -1290,6 +1308,8 @@ export default function AdminContractsTab({
                       placeholder="Ex: (68) 99999-9999"
                       value={clientForm.phone}
                       onChange={(e) => handleClientFormChange('phone', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                      onClick={(e) => e.stopPropagation()}
                       className={`w-full text-xs bg-gray-50 dark:bg-zinc-800 border rounded-xl px-3 py-2.5 focus:outline-none ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-zinc-700 focus:border-brand-primary'}`}
                     />
                   </div>
@@ -1300,6 +1320,8 @@ export default function AdminContractsTab({
                       placeholder="cliente@exemplo.com"
                       value={clientForm.email}
                       onChange={(e) => handleClientFormChange('email', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                      onClick={(e) => e.stopPropagation()}
                       className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-primary"
                     />
                   </div>
@@ -1311,6 +1333,8 @@ export default function AdminContractsTab({
                     placeholder="Rua, número, bairro, cidade, CEP"
                     value={clientForm.address}
                     onChange={(e) => handleClientFormChange('address', e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                    onClick={(e) => e.stopPropagation()}
                     className={`w-full text-xs bg-gray-50 dark:bg-zinc-800 border rounded-xl px-3 py-2.5 focus:outline-none ${errors.address ? 'border-red-500' : 'border-gray-200 dark:border-zinc-700 focus:border-brand-primary'}`}
                   />
                 </div>
@@ -1321,6 +1345,8 @@ export default function AdminContractsTab({
                     placeholder="Observações ou cláusulas adicionais..."
                     value={clientForm.observations}
                     onChange={(e) => handleClientFormChange('observations', e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-primary"
                   />
                 </div>
