@@ -1,8 +1,9 @@
 import { jsPDF } from 'jspdf';
-import type { Contract } from '../types';
+import type { Contract, ContractAudit } from '../types';
 
 /**
- * Generates and downloads a professional A4 contract PDF client-side using jsPDF.
+ * Generates and downloads a beautifully styled A4 contract PDF client-side using jsPDF.
+ * Implements proper margins, cards, borders, legal clauses, and dynamic footer page counts.
  */
 export function generateContractPDF(contract: Contract, storeName: string): void {
   const doc = new jsPDF({
@@ -45,7 +46,8 @@ export function generateContractPDF(contract: Contract, storeName: string): void
   };
 
   const checkPageSpace = (neededHeight: number) => {
-    if (y + neededHeight > pageHeight - margin) {
+    // Leave 15mm margin at bottom for the page-number footer
+    if (y + neededHeight > pageHeight - margin - 10) {
       doc.addPage();
       y = margin;
       drawSubsequentHeader();
@@ -55,11 +57,10 @@ export function generateContractPDF(contract: Contract, storeName: string): void
   const drawSubsequentHeader = () => {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
+    doc.setTextColor(148, 163, 184); // slate-400
     doc.text(`Contrato de Encomenda nº ${contract.id} | Loja: ${storeName}`, margin, y);
-    doc.text(`Página ${doc.getNumberOfPages()}`, 195, y, { align: 'right' });
-    y += 4;
-    doc.setDrawColor(220, 220, 220);
+    y += 3;
+    doc.setDrawColor(241, 245, 249); // slate-100 line
     doc.setLineWidth(0.2);
     doc.line(margin, y, 195, y);
     y += 8;
@@ -67,49 +68,47 @@ export function generateContractPDF(contract: Contract, storeName: string): void
 
   const drawMainHeader = () => {
     // Top primary accent block
-    doc.setFillColor(10, 132, 255); // #0A84FF
+    doc.setFillColor(30, 58, 138); // Navy blue #1E3A8A
     doc.rect(margin, y, contentWidth, 3, 'F');
     y += 8;
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.setTextColor(17, 17, 17); // #111111
+    doc.setFontSize(22);
+    doc.setTextColor(15, 23, 42); // slate-900
     doc.text('CONTRATO DE ENCOMENDA', margin, y);
 
     y += 6;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.setTextColor(10, 132, 255); // #0A84FF
-    doc.text(`CONTRATO Nº: ${contract.id}`, margin, y);
+    doc.setFontSize(11);
+    doc.setTextColor(37, 99, 235); // Blue-600
+    doc.text(`IDENTIFICAÇÃO Nº: ${contract.id}`, margin, y);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(120, 120, 120);
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 116, 139); // slate-500
     doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 195, y, { align: 'right' });
 
     y += 5;
-    doc.setFontSize(10);
-    doc.setTextColor(85, 85, 85); // #555555
-    doc.text(`Loja: ${storeName}`, margin, y);
+    doc.setFontSize(9.5);
+    doc.setTextColor(71, 85, 105); // slate-600
+    doc.text(`Intermediadora: ${storeName}`, margin, y);
 
     y += 4;
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.2);
+    doc.setDrawColor(226, 232, 240); // slate-200 line
+    doc.setLineWidth(0.25);
     doc.line(margin, y, 195, y);
     y += 8;
   };
 
-  const drawSectionTitle = (title: string, color: [number, number, number] = [10, 132, 255]) => {
+  const drawSectionTitle = (title: string, color: [number, number, number] = [30, 58, 138]) => {
     checkPageSpace(15);
+    doc.setFillColor(color[0], color[1], color[2]);
+    doc.rect(margin, y, 3, 5.5, 'F'); // left accent color block
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setTextColor(color[0], color[1], color[2]);
-    doc.text(title, margin, y);
-    y += 3;
-    doc.setDrawColor(color[0], color[1], color[2]);
-    doc.setLineWidth(0.3);
-    doc.line(margin, y, 195, y);
-    y += 6;
+    doc.text(title, margin + 5, y + 4.2);
+    y += 8;
   };
 
   const drawImageSafe = (
@@ -136,112 +135,124 @@ export function generateContractPDF(contract: Contract, storeName: string): void
   // 1. Title Page Header
   drawMainHeader();
 
-  // 2. Client Details Section
+  // 2. Client Details Section (Styled inside a Card)
   drawSectionTitle('DADOS DO CLIENTE');
-  checkPageSpace(30);
-
-  const clientInfo = [
-    { label: 'Nome Completo:', value: contract.clientName },
-    { label: 'CPF / Documento:', value: contract.clientCPF },
-    { label: 'WhatsApp / Telefone:', value: contract.clientPhone },
-    { label: 'E-mail:', value: contract.clientEmail || '—' },
-  ];
-
-  doc.setFontSize(9.5);
-  clientInfo.forEach(info => {
-    checkPageSpace(6);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(85, 85, 85);
-    doc.text(info.label, margin, y);
-    
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(17, 17, 17);
-    doc.text(info.value, margin + 45, y);
-    y += 5.5;
-  });
-
-  // Wrapped Client Address
-  checkPageSpace(8);
-  const wrappedAddress = doc.splitTextToSize(contract.clientAddress || '—', contentWidth - 45);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(85, 85, 85);
-  doc.text('Endereço:', margin, y);
   
+  const wrappedAddr = doc.splitTextToSize(contract.clientAddress || '—', contentWidth - 30);
+  const totalAddrLines = wrappedAddr.length;
+  const clientCardHeight = 18 + (totalAddrLines * 4.5);
+  
+  checkPageSpace(clientCardHeight + 5);
+  
+  doc.setFillColor(248, 250, 252); // slate-50
+  doc.setDrawColor(226, 232, 240); // slate-200
+  doc.setLineWidth(0.2);
+  doc.roundedRect(margin, y, contentWidth, clientCardHeight, 2, 2, 'FD');
+  
+  doc.setFontSize(9);
+  
+  // Left labels
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(71, 85, 105); // slate-600
+  doc.text('Nome:', margin + 5, y + 5.5);
+  doc.text('CPF / Documento:', margin + 5, y + 10.5);
+  doc.text('WhatsApp:', margin + 5, y + 15.5);
+  doc.text('Endereço:', margin + 5, y + 20.5);
+  
+  // Values
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(17, 17, 17);
-  doc.text(wrappedAddress, margin + 45, y);
-  y += (wrappedAddress.length * 4.5) + 3;
+  doc.setTextColor(15, 23, 42); // slate-900
+  doc.text(contract.clientName, margin + 35, y + 5.5);
+  doc.text(contract.clientCPF, margin + 35, y + 10.5);
+  doc.text(contract.clientPhone, margin + 35, y + 15.5);
+  doc.text(wrappedAddr, margin + 35, y + 20.5);
+  
+  y += clientCardHeight + 8;
 
-  y += 2;
-
-  // 3. Equipment ordered table
+  // 3. Equipment ordered table (Modern Styled Grid)
   drawSectionTitle('EQUIPAMENTOS ENCOMENDADOS');
-  checkPageSpace(20);
+  checkPageSpace(25);
 
   // Table Headers
-  doc.setFillColor(245, 245, 247);
-  doc.rect(margin, y, contentWidth, 7, 'F');
+  doc.setFillColor(30, 58, 138); // Navy blue #1E3A8A
+  doc.roundedRect(margin, y, contentWidth, 7, 1.5, 1.5, 'F');
   
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(85, 85, 85);
+  doc.setFontSize(8.5);
+  doc.setTextColor(255, 255, 255);
   
-  doc.text('Modelo', margin + 2, y + 4.5);
-  doc.text('Capacidade', margin + 70, y + 4.5);
-  doc.text('Cor', margin + 105, y + 4.5);
-  doc.text('Qtd.', margin + 140, y + 4.5, { align: 'center' });
-  doc.text('Preço Unit.', margin + 178, y + 4.5, { align: 'right' });
-  y += 7;
+  doc.text('Modelo', margin + 4, y + 4.8);
+  doc.text('Capacidade', margin + 70, y + 4.8);
+  doc.text('Cor', margin + 105, y + 4.8);
+  doc.text('Qtd.', margin + 140, y + 4.8, { align: 'center' });
+  doc.text('Preço Unit.', margin + 176, y + 4.8, { align: 'right' });
+  y += 7.5;
 
-  // Rows
+  // Alternate backgrounds & rows
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(17, 17, 17);
+  doc.setTextColor(15, 23, 42);
   
-  contract.items.forEach(item => {
+  contract.items.forEach((item, idx) => {
     checkPageSpace(8);
-    doc.text(item.model, margin + 2, y + 5);
-    doc.text(item.storage, margin + 70, y + 5);
-    doc.text(item.colorName, margin + 105, y + 5);
-    doc.text(String(item.quantity), margin + 140, y + 5, { align: 'center' });
-    doc.text(item.cashPrice, margin + 178, y + 5, { align: 'right' });
+    if (idx % 2 === 1) {
+      doc.setFillColor(248, 250, 252); // slate-50 background
+      doc.rect(margin, y, contentWidth, 7, 'F');
+    }
     
-    y += 7;
-    doc.setDrawColor(240, 240, 240);
+    doc.text(item.model, margin + 4, y + 4.8);
+    doc.text(item.storage, margin + 70, y + 4.8);
+    doc.text(item.colorName, margin + 105, y + 4.8);
+    doc.text(String(item.quantity), margin + 140, y + 4.8, { align: 'center' });
+    doc.text(item.cashPrice, margin + 176, y + 4.8, { align: 'right' });
+    
+    y += 7.2;
+    doc.setDrawColor(241, 245, 249); // slate-100 horizontal separator line
     doc.setLineWidth(0.2);
     doc.line(margin, y, 195, y);
   });
-  y += 3;
+  y += 5;
 
-  // 4. Contract values & terms
+  // 4. Contract values & terms (Styled Card)
   drawSectionTitle('VALORES E DADOS DE PAGAMENTO');
   
-  const valuesInfo = [
-    { label: 'Valor Total à Vista (PIX):', value: contract.cashTotal, isBold: true, color: [10, 132, 255] as [number, number, number] },
-    { label: 'Forma de Pagamento:', value: paymentMethodLabels[contract.paymentMethod] || contract.paymentMethod, isBold: false },
-    { label: 'Data de Início:', value: formatDateBR(contract.startDate), isBold: false },
-    { label: 'Previsão de Entrega:', value: formatDateBR(contract.deliveryDate), isBold: false },
-    { label: 'Expiração do Contrato:', value: formatDateBR(contract.expirationDate), isBold: false },
+  const valuesList = [
+    { label: 'Valor Total à Vista (PIX):', value: contract.cashTotal, isHighlight: true },
+    { label: 'Forma de Pagamento:', value: paymentMethodLabels[contract.paymentMethod] || contract.paymentMethod },
+    { label: 'Data de Início:', value: formatDateBR(contract.startDate) },
+    { label: 'Previsão de Entrega:', value: formatDateBR(contract.deliveryDate) },
+    { label: 'Expiração do Contrato:', value: formatDateBR(contract.expirationDate) },
   ];
 
-  valuesInfo.forEach(info => {
-    checkPageSpace(6);
-    doc.setFont('helvetica', info.isBold ? 'bold' : 'normal');
-    if (info.color) {
-      doc.setTextColor(info.color[0], info.color[1], info.color[2]);
+  const valuesCardHeight = 4 + (valuesList.length * 5.2);
+  checkPageSpace(valuesCardHeight + 5);
+
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.2);
+  doc.roundedRect(margin, y, contentWidth, valuesCardHeight, 2, 2, 'FD');
+
+  let innerValuesY = y + 5;
+  valuesList.forEach(info => {
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', info.isHighlight ? 'bold' : 'normal');
+    if (info.isHighlight) {
+      doc.setTextColor(37, 99, 235); // Blue-600
     } else {
-      doc.setTextColor(85, 85, 85);
+      doc.setTextColor(71, 85, 105); // slate-600
     }
-    doc.text(info.label, margin, y);
+    doc.text(info.label, margin + 5, innerValuesY);
     
     doc.setFont('helvetica', 'bold');
-    if (info.color) {
-      doc.setTextColor(info.color[0], info.color[1], info.color[2]);
+    if (info.isHighlight) {
+      doc.setTextColor(37, 99, 235); // Blue-600
     } else {
-      doc.setTextColor(17, 17, 17);
+      doc.setTextColor(15, 23, 42); // slate-900
     }
-    doc.text(info.value, margin + 65, y);
-    y += 5.5;
+    doc.text(info.value, margin + 65, innerValuesY);
+    innerValuesY += 5.2;
   });
+
+  y += valuesCardHeight + 8;
 
   // Split visual observations and audit trail
   let visualObs = '';
@@ -255,20 +266,94 @@ export function generateContractPDF(contract: Contract, storeName: string): void
   }
 
   if (visualObs) {
-    checkPageSpace(12);
-    const wrappedObs = doc.splitTextToSize(visualObs, contentWidth - 65);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(85, 85, 85);
-    doc.text('Observações:', margin, y);
+    checkPageSpace(15);
+    const wrappedObs = doc.splitTextToSize(visualObs, contentWidth - 30);
+    const obsHeight = 6 + (wrappedObs.length * 4.5);
+    
+    doc.setFillColor(254, 254, 254);
+    doc.setDrawColor(241, 245, 249);
+    doc.roundedRect(margin, y, contentWidth, obsHeight, 2, 2, 'FD');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.text('Observações:', margin + 5, y + 5.5);
     
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(17, 17, 17);
-    doc.text(wrappedObs, margin + 65, y);
-    y += (wrappedObs.length * 4.5) + 3;
+    doc.setTextColor(15, 23, 42);
+    doc.text(wrappedObs, margin + 35, y + 5.5);
+    y += obsHeight + 8;
   }
+
+  // 5. LEGAL CLAUSES SECTION (As requested by user, styled formally)
+  drawSectionTitle('CLÁUSULAS E DISPOSIÇÕES CONTRATUAIS', [15, 23, 42]); // slate-900 (Dark navy)
+
+  const clauses = [
+    {
+      title: 'Cláusula 1ª — Das Partes',
+      text: `CONTRATADA (Intermediadora): ${storeName}, responsável por prestar serviços de encomenda, importação e comercialização do produto.\nCONTRATANTE (Comprador): ${contract.clientName}, qualificado devidamente na seção "Dados do Cliente" deste contrato.`
+    },
+    {
+      title: 'Cláusula 2ª — Do Objeto do Contrato',
+      text: `O presente instrumento tem por objeto a encomenda, importação e subsequente entrega do(s) equipamento(s) eletrônico(s) discriminados na seção "Equipamentos Encomendados".`
+    },
+    {
+      title: 'Cláusula 3ª — Dos Valores e Forma de Pagamento',
+      text: contract.paymentMethod === 'pix'
+        ? `O CONTRATANTE obriga-se a realizar o pagamento total à vista no valor de ${contract.cashTotal} mediante transferência bancária (PIX) em favor da CONTRATADA antes do despacho internacional do produto.`
+        : contract.paymentMethod === 'card'
+        ? `O CONTRATANTE obriga-se a realizar o pagamento total no valor de ${contract.installmentTotal} no cartão de crédito em até 12 parcelas, assumindo as taxas cobradas pela operadora do cartão.`
+        : contract.paymentMethod === 'fiado'
+        ? `A aquisição é pactuada sob o regime de parcelamento direto (fiado): entrada de ${contract.fiadoDownPayment || 'R$ 0,00'} na assinatura, e o saldo financiado em ${contract.installments?.length || 0} parcelas mensais sucessivas. O inadimplemento de qualquer parcela importará no vencimento antecipado do saldo total e incidência de multa moratória de 2% sobre o montante em atraso.`
+        : `A aquisição dar-se-á mediante condições especiais / mistas de pagamento. O CONTRATANTE pagará os valores conforme as datas, parcelas e métodos acertados no cronograma de pagamentos.`
+    }
+  ];
+
+  if (contract.hasTrade && contract.tradeDevice) {
+    const trade = contract.tradeDevice;
+    clauses.push({
+      title: 'Cláusula 4ª — Da Permuta (Trade-In)',
+      text: `Como parte de pagamento, o CONTRATANTE entrega à CONTRATADA o dispositivo usado: ${trade.brand} ${trade.model} ${trade.storage} (${trade.color}), IMEI: ${trade.imei}, avaliado de comum acordo em ${trade.evaluatedValue}. O CONTRATANTE atesta que o aparelho possui procedência lícita e é livre de registros de bloqueio, furto ou roubo.`
+    });
+  }
+
+  const baseClauseNum = contract.hasTrade ? 5 : 4;
+
+  clauses.push({
+    title: `Cláusula ${baseClauseNum}ª — Do Prazo e Condições de Entrega`,
+    text: `O prazo estimado para importação e entrega é até o dia ${formatDateBR(contract.deliveryDate)}. O contrato é vigente de ${formatDateBR(contract.startDate)} até ${formatDateBR(contract.expirationDate)}. Eventuais prorrogações motivadas por fiscalização aduaneira ou atraso na malha logística de transporte serão comunicadas.`
+  });
+
+  clauses.push({
+    title: `Cláusula ${baseClauseNum + 1}ª — Da Garantia Legal e Contratual`,
+    text: `O dispositivo importado possui garantia do fabricante (Apple Inc.) de 1 (um) ano internacional, iniciada e contada a partir do momento da primeira ativação e conexão del aparelho.`
+  });
+
+  clauses.push({
+    title: `Cláusula ${baseClauseNum + 2}ª — Disposições Finais`,
+    text: `${baseClauseNum + 2}.1. A rescisão do contrato após o despacho internacional por iniciativa do comprador sujeitará o mesmo a arcar com taxas de devolução aduaneiras.\n${baseClauseNum + 2}.2. As partes declaram a assinatura eletrônica deste instrumento juridicamente válida e equivalente à assinatura de próprio punho, nos termos da Medida Provisória nº 2.200-2/2001 e da Lei nº 14.063/2020.`
+  });
+
+  clauses.forEach(clause => {
+    const wrappedClauseText = doc.splitTextToSize(clause.text, contentWidth);
+    const clauseHeight = 4 + (wrappedClauseText.length * 3.6);
+    checkPageSpace(clauseHeight + 6);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.text(clause.title, margin, y);
+    y += 4;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105); // slate-600
+    doc.text(wrappedClauseText, margin, y);
+    y += (wrappedClauseText.length * 3.6) + 3.5;
+  });
   y += 4;
 
-  // 5. Trade-in Device Section
+  // 6. Trade-in Device Section (If exists)
   if (contract.hasTrade && contract.tradeDevice) {
     drawSectionTitle('PERMUTA DE APARELHO (TRADE-IN)', [124, 58, 237]); // Purple
     
@@ -277,119 +362,122 @@ export function generateContractPDF(contract: Contract, storeName: string): void
       { label: 'Aparelho Entregue:', value: `${trade.brand} ${trade.model} ${trade.storage} — ${trade.color}` },
       { label: 'IMEI / Serial:', value: trade.imei },
       { label: 'Estado de Conservação:', value: conditionLabels[trade.condition] || trade.condition },
-      { label: 'Valor de Avaliação:', value: trade.evaluatedValue, isBold: true, color: [34, 197, 94] as [number, number, number] } // Green
+      { label: 'Valor de Avaliação:', value: trade.evaluatedValue, isBold: true, color: [34, 197, 94] as [number, number, number] }
     ];
 
+    const tradeCardHeight = 4 + (tradeInfo.length * 5.2) + (trade.photo ? 40 : 0) + (trade.description ? 10 : 0);
+    checkPageSpace(tradeCardHeight + 5);
+
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(margin, y, contentWidth, tradeCardHeight, 2, 2, 'FD');
+
+    let innerTradeY = y + 5.5;
     tradeInfo.forEach(info => {
-      checkPageSpace(6);
+      doc.setFontSize(8.5);
       doc.setFont('helvetica', info.isBold ? 'bold' : 'normal');
-      if (info.color) {
-        doc.setTextColor(info.color[0], info.color[1], info.color[2]);
-      } else {
-        doc.setTextColor(85, 85, 85);
-      }
-      doc.text(info.label, margin, y);
+      doc.setTextColor(info.color ? info.color[0] : 71, info.color ? info.color[1] : 85, info.color ? info.color[2] : 105);
+      doc.text(info.label, margin + 5, innerTradeY);
       
       doc.setFont('helvetica', 'bold');
-      if (info.color) {
-        doc.setTextColor(info.color[0], info.color[1], info.color[2]);
-      } else {
-        doc.setTextColor(17, 17, 17);
-      }
-      doc.text(info.value, margin + 65, y);
-      y += 5.5;
+      doc.setTextColor(info.color ? info.color[0] : 15, info.color ? info.color[1] : 23, info.color ? info.color[2] : 42);
+      doc.text(info.value, margin + 65, innerTradeY);
+      innerTradeY += 5.2;
     });
 
     if (trade.description) {
-      checkPageSpace(10);
-      const wrappedDesc = doc.splitTextToSize(trade.description, contentWidth - 65);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(85, 85, 85);
-      doc.text('Observações Permuta:', margin, y);
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Observações Permuta:', margin + 5, innerTradeY);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(17, 17, 17);
-      doc.text(wrappedDesc, margin + 65, y);
-      y += (wrappedDesc.length * 4.5) + 3;
+      doc.setTextColor(15, 23, 42);
+      doc.text(trade.description, margin + 65, innerTradeY);
+      innerTradeY += 6.5;
     }
 
     if (trade.photo) {
-      checkPageSpace(45);
-      const drew = drawImageSafe(doc, trade.photo, 'JPEG', margin, y, 60, 35);
-      if (drew) {
-        y += 38;
-      }
+      drawImageSafe(doc, trade.photo, 'JPEG', margin + 65, innerTradeY + 1, 60, 32);
+      innerTradeY += 35;
     }
-    y += 4;
+
+    y += tradeCardHeight + 8;
   }
 
-  // 6. Installments / Fiado Section
+  // 7. Installments / Fiado Section (If exists)
   if (
     (contract.paymentMethod === 'fiado' || contract.paymentMethod === 'custom') &&
     contract.installments &&
     contract.installments.length > 0
   ) {
     const isCustom = contract.paymentMethod === 'custom';
-    drawSectionTitle(isCustom ? 'CRONOGRAMA DE PAGAMENTO MISTO' : 'CRONOGRAMA DE PARCELAS (FIADO)', [217, 119, 6]); // Amber
+    drawSectionTitle(isCustom ? 'CRONOGRAMA DE PAGAMENTO MISTO' : 'CRONOGRAMA DE PARCELAS (FIADO)', [217, 119, 6]);
     
-    checkPageSpace(12);
+    checkPageSpace(15);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.setTextColor(85, 85, 85);
+    doc.setTextColor(71, 85, 105);
     const downPayment = contract.fiadoDownPayment || 'R$ 0,00';
-    doc.text(`Valor de Entrada / Sinal: ${downPayment}`, margin, y);
-    y += 6;
+    doc.text(`Valor Pago em Entrada / Sinal: ${downPayment}`, margin + 2, y);
+    y += 5;
 
     // Headers
     checkPageSpace(10);
-    doc.setFillColor(245, 245, 247);
-    doc.rect(margin, y, contentWidth, 6, 'F');
+    doc.setFillColor(30, 58, 138); // Navy
+    doc.roundedRect(margin, y, contentWidth, 6, 1.5, 1.5, 'F');
     
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.setTextColor(85, 85, 85);
-    doc.text(isCustom ? 'Parcela / Forma' : 'Parcela', margin + 2, y + 4.2);
+    doc.setTextColor(255, 255, 255);
+    doc.text(isCustom ? 'Parcela / Forma' : 'Parcela', margin + 4, y + 4.2);
     doc.text('Vencimento', margin + 60, y + 4.2, { align: 'center' });
     doc.text('Valor', margin + 100, y + 4.2, { align: 'right' });
     doc.text('Pago', margin + 140, y + 4.2, { align: 'right' });
-    doc.text('Status', margin + 178, y + 4.2, { align: 'right' });
-    y += 6;
+    doc.text('Status', margin + 176, y + 4.2, { align: 'right' });
+    y += 6.5;
 
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(17, 17, 17);
+    doc.setTextColor(15, 23, 42);
 
-    contract.installments.forEach(inst => {
+    contract.installments.forEach((inst, idx) => {
       checkPageSpace(8);
-      const titleText = isCustom ? `${inst.id} — ${inst.method || 'Pagamento'}` : inst.id;
-      doc.text(titleText, margin + 2, y + 5);
-      doc.text(formatDateBR(inst.dueDate), margin + 60, y + 5, { align: 'center' });
-      doc.text(inst.value, margin + 100, y + 5, { align: 'right' });
-      doc.text(inst.paidValue || 'R$ 0,00', margin + 140, y + 5, { align: 'right' });
+      if (idx % 2 === 1) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(margin, y, contentWidth, 7, 'F');
+      }
       
-      let statusColor = [136, 136, 136];
+      const titleText = isCustom ? `${inst.id} — ${inst.method || 'Pagamento'}` : inst.id;
+      doc.text(titleText, margin + 4, y + 4.8);
+      doc.text(formatDateBR(inst.dueDate), margin + 60, y + 4.8, { align: 'center' });
+      doc.text(inst.value, margin + 100, y + 4.8, { align: 'right' });
+      doc.text(inst.paidValue || 'R$ 0,00', margin + 140, y + 4.8, { align: 'right' });
+      
+      let statusColor = [100, 116, 139];
       let statusLabel = 'Pendente';
       if (inst.status === 'paid') {
-        statusColor = [34, 197, 94];
+        statusColor = [22, 163, 74];
         statusLabel = 'Pago';
       } else if (inst.status === 'overdue') {
-        statusColor = [239, 68, 68];
+        statusColor = [220, 38, 38];
         statusLabel = 'Em atraso';
       }
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
-      doc.text(statusLabel, margin + 178, y + 5, { align: 'right' });
+      doc.text(statusLabel, margin + 176, y + 4.8, { align: 'right' });
       
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(17, 17, 17);
+      doc.setTextColor(15, 23, 42);
       
       y += 7;
-      doc.setDrawColor(240, 240, 240);
+      doc.setDrawColor(241, 245, 249);
       doc.setLineWidth(0.2);
       doc.line(margin, y, 195, y);
     });
-    y += 4;
+    y += 5;
   }
 
-  // 7. Client Documents Section
+  // 8. Client Documents Section
   if (contract.documents && (contract.documents.rgFront || contract.documents.rgBack || contract.documents.addressProof)) {
     drawSectionTitle('DOCUMENTOS EM ANEXO');
     checkPageSpace(45);
@@ -409,7 +497,7 @@ export function generateContractPDF(contract: Contract, storeName: string): void
       if (item.data) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8);
-        doc.setTextColor(120, 120, 120);
+        doc.setTextColor(100, 116, 139); // slate-500
         doc.text(item.label, xOffset, y);
         
         const drew = drawImageSafe(doc, item.data, 'JPEG', xOffset, y + 2, docWidth, docHeight);
@@ -422,29 +510,30 @@ export function generateContractPDF(contract: Contract, storeName: string): void
     y += docHeight + 8;
   }
 
-  // 8. Signature Digital Section
+  // 9. Signature Digital Section
   if (contract.signature) {
-    drawSectionTitle('ASSINATURA DIGITAL DO CLIENTE', [17, 17, 17]);
+    drawSectionTitle('ASSINATURA DIGITAL DO CLIENTE', [15, 23, 42]);
     checkPageSpace(42);
     
-    // Draw Box
-    doc.setDrawColor(220, 220, 220);
+    doc.setDrawColor(226, 232, 240); // slate-200
     doc.setLineWidth(0.25);
-    doc.rect(margin, y, contentWidth, 34);
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(margin, y, contentWidth, 34, 2, 2, 'FD');
     
     // Draw Signature Image
     drawImageSafe(doc, contract.signature, 'PNG', margin + 40, y + 2, 100, 18);
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    doc.setTextColor(120, 120, 120);
-    doc.text(`Assinado em: ${new Date(contract.date).toLocaleString('pt-BR')}`, margin + 5, y + 26);
-    doc.text(`Situação: Assinatura Eletrônica Registrada`, margin + 5, y + 30);
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.text(`Assinado eletronicamente por: ${contract.clientName}`, margin + 5, y + 23);
+    doc.text(`Data/Hora do Registro: ${new Date(contract.date).toLocaleString('pt-BR')}`, margin + 5, y + 27);
+    doc.text(`Status do Registro: Validado`, margin + 5, y + 31);
 
     y += 38;
   }
 
-  // 9. Audit and Security Section
+  // 10. Audit and Security Section
   let audit: Partial<ContractAudit> | undefined = contract.audit;
   if (!audit && auditTrailStr) {
     try {
@@ -462,7 +551,7 @@ export function generateContractPDF(contract: Contract, storeName: string): void
         }
       });
       if (parsedAudit.ip) {
-        audit = parsedAudit;
+        audit = parsedAudit as ContractAudit;
       }
     } catch (e) {
       console.warn('Error parsing audit trail string:', e);
@@ -470,54 +559,69 @@ export function generateContractPDF(contract: Contract, storeName: string): void
   }
 
   if (audit) {
-    drawSectionTitle('HISTÓRICO DE AUDITORIA (VALIDADE JURÍDICA)', [34, 197, 94]); // Green
+    drawSectionTitle('HISTÓRICO DE AUDITORIA (VALIDADE JURÍDICA)', [22, 163, 74]); // green-600
     checkPageSpace(32);
     
     // Green validation box
     doc.setFillColor(240, 253, 244);
-    doc.rect(margin, y, contentWidth, 25, 'F');
-    doc.setDrawColor(74, 222, 128);
-    doc.rect(margin, y, contentWidth, 25);
+    doc.setDrawColor(187, 247, 208);
+    doc.setLineWidth(0.2);
+    
+    // Check if user-agent wraps to determine card size
+    const wrappedUA = doc.splitTextToSize(audit.userAgent || '—', contentWidth - 52);
+    const uaHeight = wrappedUA.length * 3.5;
+    const boxExtraHeight = uaHeight > 3.5 ? uaHeight - 3.5 : 0;
+    const auditCardHeight = 25 + boxExtraHeight;
+
+    doc.roundedRect(margin, y, contentWidth, auditCardHeight, 2, 2, 'FD');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.setTextColor(21, 128, 61);
-    doc.text('✓ Assinatura eletrônica autenticada e vinculada aos metadados abaixo:', margin + 4, y + 5);
+    doc.setTextColor(22, 101, 52);
+    doc.text('✓ Assinatura eletrônica vinculada e rastreada via metadados de rede:', margin + 5, y + 6);
 
-    doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.setTextColor(34, 100, 50);
+    doc.setTextColor(22, 101, 52);
     
-    doc.text(`Endereço IP público:`, margin + 4, y + 10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Endereço IP público:`, margin + 5, y + 11.5);
     doc.setFont('helvetica', 'bold');
-    doc.text(audit.ip || '—', margin + 45, y + 10);
+    doc.text(audit.ip || '—', margin + 45, y + 11.5);
 
     doc.setFont('helvetica', 'normal');
-    doc.text(`Localização (Cidade/UF):`, margin + 4, y + 14);
+    doc.text(`Localização aproximada:`, margin + 5, y + 16.5);
     doc.setFont('helvetica', 'bold');
-    doc.text(audit.location || '—', margin + 45, y + 14);
+    doc.text(audit.location || '—', margin + 45, y + 16.5);
 
     doc.setFont('helvetica', 'normal');
-    doc.text(`Dispositivo / Navegador:`, margin + 4, y + 18);
+    doc.text(`Dispositivo / Navegador:`, margin + 5, y + 21.5);
     doc.setFont('helvetica', 'bold');
-    const wrappedUA = doc.splitTextToSize(audit.userAgent || '—', contentWidth - 50);
-    doc.text(wrappedUA, margin + 45, y + 18);
+    doc.text(wrappedUA, margin + 45, y + 21.5);
 
     doc.setFont('helvetica', 'normal');
-    doc.text(`Data/Hora da Assinatura:`, margin + 4, y + 22);
+    doc.text(`Data/Hora da Assinatura:`, margin + 5, y + 25.5 + boxExtraHeight);
     doc.setFont('helvetica', 'bold');
-    doc.text(audit.timestamp || formatDateBR(contract.startDate), margin + 45, y + 22);
+    doc.text(audit.timestamp || formatDateBR(contract.startDate), margin + 45, y + 25.5 + boxExtraHeight);
     
-    y += 29;
+    y += auditCardHeight + 8;
   }
 
-  // 10. Footer info
-  checkPageSpace(15);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(170, 170, 170);
-  doc.text(`Este documento é uma via oficial emitida eletronicamente e possui validade jurídica respaldada pela MP nº 2.200-2/2001.`, margin, y);
-  doc.text(`Página ${doc.getNumberOfPages()}`, 195, y, { align: 'right' });
+  // --- DYNAMIC FOOTER (Add page numbers to all pages after rendering is done) ---
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    
+    // Bottom separator line
+    doc.setDrawColor(241, 245, 249); // slate-100
+    doc.setLineWidth(0.2);
+    doc.line(margin, pageHeight - 12, 195, pageHeight - 12);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184); // slate-400
+    doc.text(`Via de caráter oficial em formato eletrônico. Validade respaldada pela MP nº 2.200-2/2001 e Lei 14.063/2020.`, margin, pageHeight - 8);
+    doc.text(`Página ${i} de ${totalPages}`, 195, pageHeight - 8, { align: 'right' });
+  }
 
   // Save the generated document
   const fileName = `Contrato_${contract.id}_${contract.clientName.trim().replace(/\s+/g, '_')}.pdf`;
