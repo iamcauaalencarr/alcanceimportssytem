@@ -42,7 +42,7 @@ export default function AdminContractsTab({
     startDate: new Date().toISOString().slice(0, 10),
     expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
     deliveryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    paymentMethod: 'pix' as 'pix' | 'card' | 'fiado',
+    paymentMethod: 'pix' as 'pix' | 'card' | 'fiado' | 'custom',
     fiadoDownPayment: 'R$ 0,00',
     fiadoInstallmentsCount: 1,
     hasTrade: false,
@@ -306,6 +306,49 @@ export default function AdminContractsTab({
     };
   };
 
+  interface CustomPaymentInput {
+    id: string;
+    method: string;
+    customMethod?: string;
+    value: string;
+    dueDate: string;
+    status: 'pending' | 'paid';
+  }
+
+  const [customPayments, setCustomPayments] = useState<CustomPaymentInput[]>([
+    { id: 'cp-1', method: 'PIX', value: 'R$ 0,00', dueDate: new Date().toISOString().slice(0, 10), status: 'paid' }
+  ]);
+
+  const handleAddCustomPayment = () => {
+    const cashTotalNum = parsePrice(getDraftTotals().cash);
+    const allocatedTotal = customPayments.reduce((acc, p) => acc + parsePrice(p.value), 0);
+    const remaining = Math.max(0, cashTotalNum - allocatedTotal);
+    
+    setCustomPayments(prev => [
+      ...prev,
+      {
+        id: `cp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        method: 'A Prazo / Fiado',
+        value: formatPrice(remaining),
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        status: 'pending'
+      }
+    ]);
+  };
+
+  const handleRemoveCustomPayment = (id: string) => {
+    setCustomPayments(prev => prev.filter(p => p.id !== id));
+  };
+
+  const handleUpdateCustomPayment = (id: string, field: string, value: any) => {
+    setCustomPayments(prev => prev.map(p => {
+      if (p.id === id) {
+        return { ...p, [field]: value };
+      }
+      return p;
+    }));
+  };
+
   // Submit Draft and Create Contract
   const handleCreateDraftContract = async () => {
     const newErrors: Record<string, string> = {};
@@ -318,6 +361,17 @@ export default function AdminContractsTab({
     }
     if (!clientForm.address.trim()) newErrors.address = 'Endereço de entrega obrigatório';
     if (draftItems.length === 0) newErrors.items = 'Adicione produtos ao contrato';
+
+    const totals = getDraftTotals();
+
+    // Validar se o total alocado nas parcelas personalizadas bate com o total do contrato
+    if (clientForm.paymentMethod === 'custom') {
+      const cashTotalNum = parsePrice(totals.cash);
+      const allocatedTotal = customPayments.reduce((acc, p) => acc + parsePrice(p.value), 0);
+      if (Math.abs(cashTotalNum - allocatedTotal) > 0.01) {
+        newErrors.customPayments = `O valor total alocado (${formatPrice(allocatedTotal)}) deve ser igual ao total do contrato (${totals.cash})`;
+      }
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -341,12 +395,11 @@ export default function AdminContractsTab({
       };
     });
 
-    const totals = getDraftTotals();
     const randomNum = Math.floor(10000 + Math.random() * 90000);
     const year = new Date().getFullYear().toString().slice(-2);
     const contractId = `CTR-${year}${randomNum}`;
 
-    // Generate installments for fiado if selected
+    // Generate installments for fiado or custom if selected
     let installments: Installment[] = [];
     if (clientForm.paymentMethod === 'fiado') {
       const count = clientForm.fiadoInstallmentsCount || 1;
@@ -367,6 +420,27 @@ export default function AdminContractsTab({
           payments: []
         });
       }
+    } else if (clientForm.paymentMethod === 'custom') {
+      installments = customPayments.map((p, idx) => {
+        const methodLabel = p.method === 'Outro' ? (p.customMethod || 'Outro') : p.method;
+        return {
+          id: `P${idx + 1}`,
+          dueDate: p.dueDate,
+          value: p.value,
+          status: p.status === 'paid' ? 'paid' : 'pending',
+          paidValue: p.status === 'paid' ? p.value : 'R$ 0,00',
+          payments: p.status === 'paid' ? [{ date: new Date().toISOString().slice(0, 10), value: p.value }] : [],
+          method: methodLabel
+        };
+      });
+    }
+
+    let fiadoDownPaymentValue = clientForm.fiadoDownPayment;
+    if (clientForm.paymentMethod === 'custom') {
+      const downPaymentSum = customPayments
+        .filter(p => p.status === 'paid')
+        .reduce((sum, p) => sum + parsePrice(p.value), 0);
+      fiadoDownPaymentValue = formatPrice(downPaymentSum);
     }
 
     const newContract: Contract = {
@@ -402,8 +476,8 @@ export default function AdminContractsTab({
         photo: tradePhoto || undefined
       } : undefined,
 
-      installments: clientForm.paymentMethod === 'fiado' ? installments : undefined,
-      fiadoDownPayment: clientForm.paymentMethod === 'fiado' ? clientForm.fiadoDownPayment : undefined,
+      installments: (clientForm.paymentMethod === 'fiado' || clientForm.paymentMethod === 'custom') ? installments : undefined,
+      fiadoDownPayment: (clientForm.paymentMethod === 'fiado' || clientForm.paymentMethod === 'custom') ? fiadoDownPaymentValue : undefined,
 
       documents: (rgFront || rgBack || addressProof) ? {
         rgFront: rgFront || undefined,
@@ -424,6 +498,9 @@ export default function AdminContractsTab({
 
     // Reset Form States
     setIsCreating(false);
+    setCustomPayments([
+      { id: 'cp-1', method: 'PIX', value: 'R$ 0,00', dueDate: new Date().toISOString().slice(0, 10), status: 'paid' }
+    ]);
     setClientForm({
       name: '',
       cpf: '',
@@ -522,7 +599,7 @@ export default function AdminContractsTab({
   // Get total amount received for a contract (Downpayment + payments)
   const getTotalAmountPaid = (c: Contract) => {
     let total = 0;
-    if (c.paymentMethod === 'fiado') {
+    if (c.paymentMethod === 'fiado' || c.paymentMethod === 'custom') {
       total += parsePrice(c.fiadoDownPayment || 'R$ 0,00');
       c.installments?.forEach(inst => {
         total += parsePrice(inst.paidValue || 'R$ 0,00');
@@ -567,7 +644,8 @@ export default function AdminContractsTab({
     const payLabels: Record<string, string> = {
       pix: 'PIX / Transferência Bancária',
       card: 'Cartão de Crédito',
-      fiado: 'Fiado / A Prazo'
+      fiado: 'Fiado / A Prazo',
+      custom: 'Misto / Personalizado'
     };
     const fmtDate = (d?: string) => {
       if (!d) return '—';
@@ -577,7 +655,9 @@ export default function AdminContractsTab({
 
     const installmentRows = c.installments?.map(inst => `
       <tr style="border-bottom:1px solid #eee">
-        <td style="padding:6px 8px;font-weight:bold;color:#0A84FF">${inst.id}</td>
+        <td style="padding:6px 8px;font-weight:bold;color:#0A84FF">
+          ${c.paymentMethod === 'custom' ? `${inst.id} — ${inst.method || 'Pagamento'}` : inst.id}
+        </td>
         <td style="padding:6px 8px;text-align:center">${fmtDate(inst.dueDate)}</td>
         <td style="padding:6px 8px;text-align:right;font-weight:bold">${inst.value}</td>
         <td style="padding:6px 8px;text-align:center">${inst.paidValue || 'R$ 0,00'}</td>
@@ -599,13 +679,18 @@ export default function AdminContractsTab({
       </div>
     ` : '';
 
-    const fiadoSection = c.paymentMethod === 'fiado' && c.installments ? `
+    const fiadoSection = (c.paymentMethod === 'fiado' || c.paymentMethod === 'custom') && c.installments ? `
       <div style="border:1px solid #ddd;border-radius:8px;padding:16px;margin-top:16px">
-        <h3 style="margin:0 0 8px;font-size:13px;color:#d97706">📅 CRONOGRAMA DE PARCELAS (FIADO)</h3>
-        <p style="font-size:12px;margin:0 0 8px">Entrada: <strong>${c.fiadoDownPayment || 'R$ 0,00'}</strong> | Saldo Devedor: <strong style="color:#ef4444">${formatPrice(getRemainingDebt(c))}</strong></p>
+        <h3 style="margin:0 0 8px;font-size:13px;color:#d97706">
+          ${c.paymentMethod === 'custom' ? '📅 CRONOGRAMA DE PAGAMENTO MISTO / PERSONALIZADO' : '📅 CRONOGRAMA DE PARCELAS (FIADO)'}
+        </h3>
+        <p style="font-size:12px;margin:0 0 8px">
+          ${parsePrice(c.fiadoDownPayment || 'R$ 0,00') > 0 ? `Entrada/Sinal: <strong>${c.fiadoDownPayment}</strong> | ` : ''}
+          Saldo Devedor: <strong style="color:#ef4444">${formatPrice(getRemainingDebt(c))}</strong>
+        </p>
         <table style="width:100%;font-size:12px;border-collapse:collapse">
           <thead><tr style="background:#f5f5f7;font-size:11px;font-weight:bold;color:#666">
-            <th style="padding:6px 8px;text-align:left">Parc.</th>
+            <th style="padding:6px 8px;text-align:left">${c.paymentMethod === 'custom' ? 'Parcela / Forma' : 'Parc.'}</th>
             <th style="padding:6px 8px;text-align:center">Vencimento</th>
             <th style="padding:6px 8px;text-align:right">Valor</th>
             <th style="padding:6px 8px;text-align:center">Pago</th>
@@ -824,7 +909,7 @@ export default function AdminContractsTab({
                       </td>
                       <td className="p-4 font-mono font-bold text-brand-primary">
                         {c.cashTotal}
-                        {c.paymentMethod === 'fiado' && (
+                        {(c.paymentMethod === 'fiado' || c.paymentMethod === 'custom') && (
                           <div className="text-[9px] text-red-500 font-semibold mt-0.5 font-sans">
                             Restam: {formatPrice(getRemainingDebt(c))}
                           </div>
@@ -1013,18 +1098,29 @@ export default function AdminContractsTab({
                   </div>
                   <div>
                     <span className="text-[9px] text-brand-muted dark:text-zinc-400 block">Forma de Pagamento:</span>
-                    <span className="font-bold text-brand-secondary dark:text-white uppercase">{selectedContract.paymentMethod}</span>
+                    <span className="font-bold text-brand-secondary dark:text-white uppercase">
+                      {({
+                        pix: 'PIX',
+                        card: 'Cartão de Crédito',
+                        fiado: 'Fiado / A Prazo',
+                        custom: 'Misto / Personalizado'
+                      } as Record<string, string>)[selectedContract.paymentMethod] || selectedContract.paymentMethod}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Fiado Installments Amortization Module */}
-              {selectedContract.paymentMethod === 'fiado' && (
+              {/* Fiado / Custom Installments Amortization Module */}
+              {(selectedContract.paymentMethod === 'fiado' || selectedContract.paymentMethod === 'custom') && (
                 <div className="premium-card p-4 space-y-4 text-xs">
                   <div className="flex justify-between items-center border-b border-gray-150 dark:border-zinc-800 pb-2">
-                    <h4 className="font-black text-brand-primary uppercase text-[10px] tracking-wide">💳 Parcelamento Fiado / A Prazo</h4>
+                    <h4 className="font-black text-brand-primary uppercase text-[10px] tracking-wide">
+                      {selectedContract.paymentMethod === 'custom' ? '💳 Cronograma de Pagamento Misto' : '💳 Parcelamento Fiado / A Prazo'}
+                    </h4>
                     <div className="flex gap-4 font-mono font-bold text-[11px]">
-                      <div>Entrada: <span className="text-brand-secondary dark:text-white">{selectedContract.fiadoDownPayment || 'R$ 0,00'}</span></div>
+                      {parsePrice(selectedContract.fiadoDownPayment || 'R$ 0,00') > 0 && (
+                        <div>Entrada: <span className="text-brand-secondary dark:text-white">{selectedContract.fiadoDownPayment}</span></div>
+                      )}
                       <div className="text-red-500">Saldo Devedor: <span>{formatPrice(getRemainingDebt(selectedContract))}</span></div>
                     </div>
                   </div>
@@ -1041,7 +1137,12 @@ export default function AdminContractsTab({
                           <div className="flex items-center gap-3">
                             <span className="w-6 h-6 rounded-full bg-brand-primary/10 text-brand-primary font-black flex items-center justify-center text-[10px]">{inst.id}</span>
                             <div>
-                              <div className="font-extrabold text-brand-secondary dark:text-white">Parcela {inst.id.replace('P', '')} - {inst.value}</div>
+                              <div className="font-extrabold text-brand-secondary dark:text-white">
+                                {selectedContract.paymentMethod === 'custom'
+                                  ? `${inst.method || 'Pagamento'} — ${inst.value}`
+                                  : `Parcela ${inst.id.replace('P', '')} — ${inst.value}`
+                                }
+                              </div>
                               <div className="text-[10px] text-brand-muted dark:text-zinc-450 mt-0.5">Vencimento: {new Date(inst.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}</div>
                             </div>
                           </div>
@@ -1604,10 +1705,15 @@ export default function AdminContractsTab({
               {/* Part 5: Payment Method & Fiado */}
               <div className="space-y-4">
                 <h4 className="text-[10px] font-black uppercase text-brand-primary tracking-wider">4. Forma de Pagamento</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {['pix', 'card', 'fiado'].map((method) => {
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {['pix', 'card', 'fiado', 'custom'].map((method) => {
                     const isSelected = clientForm.paymentMethod === method;
-                    const labels: Record<string, string> = { pix: 'À Vista (PIX)', card: 'Cartão de Crédito', fiado: 'A Prazo / Fiado' };
+                    const labels: Record<string, string> = { 
+                      pix: 'À Vista (PIX)', 
+                      card: 'Cartão de Crédito', 
+                      fiado: 'A Prazo / Fiado',
+                      custom: 'Misto / Personalizado'
+                    };
                     return (
                       <button
                         key={method}
@@ -1647,6 +1753,124 @@ export default function AdminContractsTab({
                         onChange={(e) => setClientForm(prev => ({ ...prev, fiadoInstallmentsCount: Math.max(1, parseInt(e.target.value) || 1) }))}
                         className="w-full text-xs bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 focus:outline-none"
                       />
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom Payments Builder */}
+                {clientForm.paymentMethod === 'custom' && (
+                  <div className="bg-gray-50/50 dark:bg-zinc-800/20 border border-gray-150 dark:border-zinc-800 rounded-2xl p-5 space-y-4 shadow-inner">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                      <h5 className="text-[10px] font-black uppercase text-brand-primary tracking-wider">Cronograma de Pagamentos Misto</h5>
+                      <span className="text-[10px] font-bold text-brand-muted">
+                        Total Pedido: {getDraftTotals().cash}
+                      </span>
+                    </div>
+
+                    {/* Custom Payments List */}
+                    <div className="space-y-3">
+                      {customPayments.map((payment) => (
+                        <div key={payment.id} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 items-end relative shadow-sm">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomPayment(payment.id)}
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-[10px] shadow cursor-pointer font-bold border border-white dark:border-zinc-900"
+                            title="Remover Pagamento"
+                            disabled={customPayments.length <= 1}
+                          >
+                            ×
+                          </button>
+                          
+                          <div className="space-y-1">
+                            <label className="text-[8px] font-bold text-brand-muted uppercase block">Método / Descrição</label>
+                            <select
+                              value={payment.method}
+                              onChange={(e) => handleUpdateCustomPayment(payment.id, 'method', e.target.value)}
+                              className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 focus:outline-none font-bold text-brand-secondary dark:text-white"
+                            >
+                              <option value="PIX">PIX</option>
+                              <option value="Cartão de Crédito">Cartão de Crédito</option>
+                              <option value="Dinheiro">Dinheiro</option>
+                              <option value="A Prazo / Fiado">A Prazo / Fiado</option>
+                              <option value="Boleto">Boleto</option>
+                              <option value="Permuta / Usado">Permuta / Usado</option>
+                              <option value="Outro">Outro (especificar)</option>
+                            </select>
+                            {payment.method === 'Outro' && (
+                              <input
+                                type="text"
+                                placeholder="Especifique..."
+                                value={payment.customMethod || ''}
+                                onChange={(e) => handleUpdateCustomPayment(payment.id, 'customMethod', e.target.value)}
+                                className="w-full text-[11px] bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-750 rounded-lg px-2 py-1 mt-1 focus:outline-none"
+                              />
+                            )}
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[8px] font-bold text-brand-muted uppercase block">Valor</label>
+                            <input
+                              type="text"
+                              value={payment.value}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/\D/g, '');
+                                const val = parseFloat(digits) / 100;
+                                handleUpdateCustomPayment(payment.id, 'value', isNaN(val) ? 'R$ 0,00' : formatPrice(val));
+                              }}
+                              className="w-full text-xs bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 font-mono font-bold focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[8px] font-bold text-brand-muted uppercase block">Data de Vencimento</label>
+                            <input
+                              type="date"
+                              value={payment.dueDate}
+                              onChange={(e) => handleUpdateCustomPayment(payment.id, 'dueDate', e.target.value)}
+                              className="w-full text-xs bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[8px] font-bold text-brand-muted uppercase block">Status Inicial</label>
+                            <select
+                              value={payment.status}
+                              onChange={(e) => handleUpdateCustomPayment(payment.id, 'status', e.target.value as any)}
+                              className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 focus:outline-none font-semibold text-brand-secondary dark:text-white"
+                            >
+                              <option value="pending">Pendente (a cobrar)</option>
+                              <option value="paid">Pago (no ato / entrada)</option>
+                            </select>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:justify-between items-center gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleAddCustomPayment}
+                        className="px-3.5 py-2 text-xs font-bold text-brand-primary bg-brand-primary/5 hover:bg-brand-primary/10 rounded-xl border border-brand-primary/20 flex items-center gap-1.5 transition-colors cursor-pointer w-full sm:w-auto justify-center"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" /> Adicionar Pagamento
+                      </button>
+
+                      <div className="text-[10px] font-bold text-right w-full sm:w-auto">
+                        {(() => {
+                          const draftTotals = getDraftTotals();
+                          const cashTotalNum = parsePrice(draftTotals.cash);
+                          const allocatedTotal = customPayments.reduce((acc, p) => acc + parsePrice(p.value), 0);
+                          const remaining = cashTotalNum - allocatedTotal;
+                          
+                          if (Math.abs(remaining) < 0.01) {
+                            return <span className="text-green-500 font-extrabold flex items-center gap-1 justify-end"><Check className="w-3.5 h-3.5" /> Total totalmente alocado!</span>;
+                          } else if (remaining > 0) {
+                            return <span className="text-amber-500 font-extrabold">Falta alocar: {formatPrice(remaining)}</span>;
+                          } else {
+                            return <span className="text-red-500 font-extrabold">Excesso alocado: {formatPrice(Math.abs(remaining))}</span>;
+                          }
+                        })()}
+                      </div>
                     </div>
                   </div>
                 )}

@@ -42,6 +42,7 @@ export interface Installment {
   paidValue?: string; // total amount paid so far
   paymentDate?: string; // payment confirmation date
   payments?: { date: string; value: string }[]; // payment details history
+  method?: string; // e.g. "PIX", "Cartão", "A Prazo"
 }
 
 export interface TradeDevice {
@@ -82,7 +83,7 @@ export interface Contract {
   startDate: string; // YYYY-MM-DD
   expirationDate: string; // YYYY-MM-DD
   deliveryDate: string; // YYYY-MM-DD
-  paymentMethod: 'pix' | 'card' | 'fiado';
+  paymentMethod: 'pix' | 'card' | 'fiado' | 'custom';
   
   // Trade-in details
   hasTrade?: boolean;

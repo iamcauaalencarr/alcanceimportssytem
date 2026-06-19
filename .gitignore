@@ -46,3 +46,7 @@ scratch/
 # Tabela de valores interna
 "tabela de valores"
 tabela de valores
+
+# Agent customizations
+.agents/
+skills-lock.json

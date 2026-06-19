@@ -1,4 +1,4 @@
-import { useState, useEffect, type SVGProps } from 'react';
+import { useState, useEffect, useRef, type SVGProps } from 'react';
 import { 
   Settings, RotateCcw, Share2, Eye, Unlock, Phone, 
   LayoutGrid, List, Search, PlusCircle, Trash2, Image as ImageIcon, 
@@ -12,6 +12,13 @@ import AdminContractsTab from './components/AdminContractsTab';
 import { DEFAULT_PRODUCTS, SECTIONS_METADATA } from './constants';
 import productsData from './products-data.json';
 import settingsData from './settings-data.json';
+import { 
+  fetchContracts, 
+  saveAllContractsToSupabase, 
+  deleteContractFromSupabase,
+  fetchStoreConfig,
+  saveStoreConfig 
+} from './supabaseClient';
 
 const typedSettingsData = settingsData as Record<string, any>;
 
@@ -129,6 +136,9 @@ export default function App() {
   const [currentView, setCurrentView] = useState<'client' | 'admin-login' | 'admin'>('client');
   const [adminTab, setAdminTab] = useState<'products' | 'bulk-adjust' | 'settings' | 'contracts'>('products');
   
+  const isInitialProductsLoad = useRef(true);
+  const isInitialSettingsLoad = useRef(true);
+
   // Settings values (stored in LocalStorage or fall back to backend config)
   const [storeName, setStoreName] = useState(() => localStorage.getItem("alcance_imports_store_name") || typedSettingsData.storeName || "ALCANCE IMPORTS");
   const [storeWhatsApp, setStoreWhatsApp] = useState(() => localStorage.getItem("alcance_imports_store_whatsapp") || typedSettingsData.storeWhatsApp || "5568999027454");
@@ -217,46 +227,92 @@ export default function App() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [isContractFlowOpen, setIsContractFlowOpen] = useState(false);
 
-  // Load contracts on mount
+  // Load contracts, products, and settings from Supabase on mount
   useEffect(() => {
-    const loadContracts = async () => {
+    const loadData = async () => {
+      // 1. Load contracts
       try {
-        const res = await fetch('/api/get-contracts');
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            setContracts(data);
-            localStorage.setItem("alcance_imports_contracts", JSON.stringify(data));
-            return;
+        const data = await fetchContracts();
+        setContracts(data);
+        localStorage.setItem("alcance_imports_contracts", JSON.stringify(data));
+      } catch (e) {
+        console.warn("Falha ao buscar contratos do Supabase:", e);
+        const stored = localStorage.getItem("alcance_imports_contracts");
+        if (stored) {
+          try {
+            setContracts(JSON.parse(stored));
+          } catch (err) {
+            console.error("Erro ao carregar contratos do LocalStorage:", err);
           }
         }
-      } catch (e) {
-        console.warn("Falha ao buscar contratos do backend local:", e);
       }
-      
-      const stored = localStorage.getItem("alcance_imports_contracts");
-      if (stored) {
-        try {
-          setContracts(JSON.parse(stored));
-        } catch (e) {
-          console.error("Erro ao carregar contratos do LocalStorage:", e);
+
+      // 2. Load products
+      try {
+        const dbProds = await fetchStoreConfig<Product[]>('products', []);
+        if (dbProds && dbProds.length > 0) {
+          setProducts(dbProds);
+          localStorage.setItem("alcance_imports_pricing_interactive_colors", JSON.stringify(dbProds));
         }
+      } catch (e) {
+        console.warn("Falha ao buscar produtos do Supabase:", e);
+      } finally {
+        setTimeout(() => {
+          isInitialProductsLoad.current = false;
+        }, 100);
+      }
+
+      // 3. Load settings
+      try {
+        const fallbackSettings = {
+          storeName: typedSettingsData.storeName || "ALCANCE IMPORTS",
+          storeWhatsApp: typedSettingsData.storeWhatsApp || "5568999027454",
+          storeInstagram: typedSettingsData.storeInstagram || "@alcance.imports",
+          storeWebsite: typedSettingsData.storeWebsite || "www.alcanceimports.com",
+          adminPIN: typedSettingsData.adminPIN || "908077",
+          cardTaxBase: typedSettingsData.cardTaxBase || 2.5,
+          cardTaxMonthly: typedSettingsData.cardTaxMonthly || 1.2
+        };
+        const dbSettings = await fetchStoreConfig('settings', fallbackSettings);
+        if (dbSettings) {
+          setStoreName(dbSettings.storeName || fallbackSettings.storeName);
+          setStoreWhatsApp(dbSettings.storeWhatsApp || fallbackSettings.storeWhatsApp);
+          setStoreInstagram(dbSettings.storeInstagram || fallbackSettings.storeInstagram);
+          setStoreWebsite(dbSettings.storeWebsite || fallbackSettings.storeWebsite);
+          setAdminPIN(dbSettings.adminPIN || fallbackSettings.adminPIN);
+          setCardTaxBase(dbSettings.cardTaxBase ?? fallbackSettings.cardTaxBase);
+          setCardTaxMonthly(dbSettings.cardTaxMonthly ?? fallbackSettings.cardTaxMonthly);
+
+          localStorage.setItem("alcance_imports_store_name", dbSettings.storeName);
+          localStorage.setItem("alcance_imports_store_whatsapp", dbSettings.storeWhatsApp);
+          localStorage.setItem("alcance_imports_store_instagram", dbSettings.storeInstagram);
+          localStorage.setItem("alcance_imports_store_website", dbSettings.storeWebsite);
+          localStorage.setItem("alcance_imports_admin_pin", dbSettings.adminPIN);
+          localStorage.setItem("alcance_imports_card_tax_base", String(dbSettings.cardTaxBase));
+          localStorage.setItem("alcance_imports_card_tax_monthly", String(dbSettings.cardTaxMonthly));
+        }
+      } catch (e) {
+        console.warn("Falha ao buscar configurações do Supabase:", e);
+      } finally {
+        setTimeout(() => {
+          isInitialSettingsLoad.current = false;
+        }, 100);
       }
     };
-    loadContracts();
+    loadData();
   }, []);
 
   const handleUpdateContracts = async (updatedList: Contract[]) => {
+    const deletedContracts = contracts.filter(c => !updatedList.some(ul => ul.id === c.id));
     setContracts(updatedList);
     localStorage.setItem("alcance_imports_contracts", JSON.stringify(updatedList));
     try {
-      await fetch('/api/save-all-contracts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedList)
-      });
+      await saveAllContractsToSupabase(updatedList);
+      for (const c of deletedContracts) {
+        await deleteContractFromSupabase(c.id);
+      }
     } catch (e) {
-      console.warn("Falha ao salvar contratos no backend local:", e);
+      console.warn("Falha ao salvar contratos no Supabase:", e);
     }
   };
 
@@ -273,14 +329,13 @@ export default function App() {
           setActiveSignContract(found);
         } else {
           // Fetch directly from server if not in loaded list yet
-          fetch('/api/get-contracts')
-            .then(res => res.json())
+          fetchContracts()
             .then(data => {
               if (Array.isArray(data)) {
                 const c = data.find((item: Contract) => item.id === contractId);
                 if (c) setActiveSignContract(c);
               }
-            }).catch(err => console.warn("Erro ao buscar contrato por hash:", err));
+            }).catch(err => console.warn("Erro ao buscar contrato por hash no Supabase:", err));
         }
       } else {
         setActiveSignContract(null);
@@ -306,12 +361,12 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("alcance_imports_pricing_interactive_colors", JSON.stringify(products));
     
-    // Save to local backend in development
-    fetch('/api/save-products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(products)
-    }).catch(err => console.warn("Erro ao salvar produtos no backend local:", err));
+    if (isInitialProductsLoad.current) {
+      return;
+    }
+    
+    // Save to Supabase
+    saveStoreConfig('products', products).catch(err => console.warn("Erro ao salvar produtos no Supabase:", err));
   }, [products]);
 
   // Ensure dark mode classes are removed from body and HTML
@@ -331,20 +386,19 @@ export default function App() {
     localStorage.setItem("alcance_imports_card_tax_base", String(cardTaxBase));
     localStorage.setItem("alcance_imports_card_tax_monthly", String(cardTaxMonthly));
 
-    // Save to local backend in development
-    fetch('/api/save-settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        storeName,
-        storeWhatsApp,
-        storeInstagram,
-        storeWebsite,
-        adminPIN,
-        cardTaxBase,
-        cardTaxMonthly
-      })
-    }).catch(err => console.warn("Erro ao salvar configurações no backend local:", err));
+    if (isInitialSettingsLoad.current) {
+      return;
+    }
+
+    saveStoreConfig('settings', {
+      storeName,
+      storeWhatsApp,
+      storeInstagram,
+      storeWebsite,
+      adminPIN,
+      cardTaxBase,
+      cardTaxMonthly
+    }).catch(err => console.warn("Erro ao salvar configurações no Supabase:", err));
   }, [storeName, storeWhatsApp, storeInstagram, storeWebsite, adminPIN, cardTaxBase, cardTaxMonthly]);
 
   // Sync cart state to local storage

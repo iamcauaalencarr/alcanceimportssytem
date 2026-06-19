@@ -237,6 +237,13 @@ export default function ContractSigningFlow({
       message += `💳 *Entrada:* ${presetContract.fiadoDownPayment || 'R$ 0,00'}\n`;
       message += `📋 *Parcelas:* ${presetContract.installments?.length || 0}x\n`;
     }
+    if (presetContract?.paymentMethod === 'custom') {
+      message += `📅 *Forma de Pagamento:* Misto / Personalizado\n`;
+      if (presetContract.fiadoDownPayment && presetContract.fiadoDownPayment !== 'R$ 0,00') {
+        message += `💳 *Entrada/Sinal:* ${presetContract.fiadoDownPayment}\n`;
+      }
+      message += `📋 *Parcelas:* ${presetContract.installments?.length || 0}x no cronograma\n`;
+    }
     if (presetContract?.hasTrade) {
       message += `🔄 *Permuta:* ${presetContract.tradeDevice?.brand} ${presetContract.tradeDevice?.model} (${presetContract.tradeDevice?.evaluatedValue})\n`;
     }
@@ -459,6 +466,28 @@ export default function ContractSigningFlow({
                       </div>
                     </div>
                   )}
+                  {presetContract?.paymentMethod === 'custom' && presetContract.installments && (
+                    <div className="mt-2 space-y-2">
+                      <p>
+                        A aquisição é efetuada mediante condições de pagamento personalizadas / mistas. O CONTRATANTE compromete-se a efetuar os pagamentos conforme as datas, valores e métodos especificados no cronograma abaixo. O não pagamento de qualquer parcela na data aprazada importará no vencimento antecipado do saldo devedor e incidência de multa de 2% sobre o montante em atraso.
+                      </p>
+                      {/* Installments table */}
+                      <div className="mt-2">
+                        <div className="grid grid-cols-3 text-[9.5px] font-bold text-brand-muted border-b border-gray-200 dark:border-zinc-700 pb-1 mb-1">
+                          <span>Parcela / Forma</span>
+                          <span className="text-center">Vencimento</span>
+                          <span className="text-right">Valor</span>
+                        </div>
+                        {presetContract.installments.map((inst) => (
+                          <div key={inst.id} className="grid grid-cols-3 text-[10px] py-0.5 border-b border-gray-100 dark:border-zinc-800/50">
+                            <span className="font-bold text-brand-primary">{inst.id} — {inst.method || 'Pagamento'}</span>
+                            <span className="text-center">{formatDateBR(inst.dueDate)}</span>
+                            <span className="text-right font-bold">{inst.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* 4. Permuta (Trade-in) — rendered only if hasTrade */}
@@ -546,7 +575,7 @@ export default function ContractSigningFlow({
               )}
 
               {/* Trade-in & Fiado quick summary badges */}
-              {presetContract && (presetContract.hasTrade || presetContract.paymentMethod === 'fiado') && (
+              {presetContract && (presetContract.hasTrade || presetContract.paymentMethod === 'fiado' || presetContract.paymentMethod === 'custom') && (
                 <div className="flex flex-wrap gap-2">
                   {presetContract.hasTrade && presetContract.tradeDevice && (
                     <div className="flex items-center gap-1.5 bg-purple-50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 rounded-full px-3 py-1.5 text-[10px] font-bold text-purple-800 dark:text-purple-300">
@@ -558,6 +587,12 @@ export default function ContractSigningFlow({
                     <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 rounded-full px-3 py-1.5 text-[10px] font-bold text-amber-800 dark:text-amber-300">
                       <CreditCard className="w-3 h-3" />
                       Fiado: Entrada {presetContract.fiadoDownPayment} + {presetContract.installments?.length}x parcelas
+                    </div>
+                  )}
+                  {presetContract.paymentMethod === 'custom' && (
+                    <div className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-full px-3 py-1.5 text-[10px] font-bold text-indigo-800 dark:text-indigo-300">
+                      <CreditCard className="w-3 h-3" />
+                      Misto: {presetContract.installments?.length} parcelas personalizadas
                     </div>
                   )}
                 </div>
@@ -690,11 +725,17 @@ export default function ContractSigningFlow({
                       <p><strong>Parcelas:</strong> {presetContract.installments?.length}x de {presetContract.installments?.[0]?.value}</p>
                     </>
                   )}
+                  {presetContract?.paymentMethod === 'custom' && (
+                    <>
+                      <p><strong>Método de Pagamento:</strong> Misto / Personalizado</p>
+                      <p><strong>Parcelas:</strong> {presetContract.installments?.length} parcela(s) personalizada(s)</p>
+                    </>
+                  )}
                   {presetContract?.hasTrade && presetContract.tradeDevice && (
                     <p className="flex items-center gap-1"><RefreshCw className="w-3 h-3 text-purple-500" /> <strong>Permuta deduzida:</strong> {presetContract.tradeDevice.evaluatedValue}</p>
                   )}
-                  {presetContract?.paymentMethod === 'fiado' && presetContract.installments && (
-                    <p className="flex items-center gap-1 text-amber-700"><DollarSign className="w-3 h-3" /><strong>Saldo Total c/ Fiado:</strong> {presetContract.cashTotal}</p>
+                  {(presetContract?.paymentMethod === 'fiado' || presetContract?.paymentMethod === 'custom') && presetContract.installments && (
+                    <p className="flex items-center gap-1 text-amber-700"><DollarSign className="w-3 h-3" /><strong>Saldo Total:</strong> {presetContract.cashTotal}</p>
                   )}
                 </div>
               </div>
@@ -706,7 +747,7 @@ export default function ContractSigningFlow({
                   className="mt-0.5 w-4 h-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary/40 focus:ring-2 cursor-pointer"
                 />
                 <span className="leading-tight">
-                  Li, compreendi e concordo com todos os termos e cláusulas do contrato acima, incluindo os valores, prazos, {presetContract?.hasTrade ? 'termos de permuta, ' : ''}{presetContract?.paymentMethod === 'fiado' ? 'cronograma de parcelas do fiado, ' : ''}e demais disposições legais.
+                  Li, compreendi e concordo com todos os termos e cláusulas do contrato acima, incluindo os valores, prazos, {presetContract?.hasTrade ? 'termos de permuta, ' : ''}{presetContract?.paymentMethod === 'fiado' ? 'cronograma de parcelas do fiado, ' : presetContract?.paymentMethod === 'custom' ? 'cronograma de pagamentos personalizados, ' : ''}e demais disposições legais.
                 </span>
               </label>
             </div>
@@ -738,7 +779,7 @@ export default function ContractSigningFlow({
                   <span className="font-bold text-brand-muted">Total:</span>
                   <span className="font-black text-brand-primary font-mono">{activeTotals.cash}</span>
                 </div>
-                {presetContract?.paymentMethod === 'fiado' && (
+                {(presetContract?.paymentMethod === 'fiado' || presetContract?.paymentMethod === 'custom') && (
                   <div className="border-t border-gray-200/50 my-2 pt-2 flex justify-between items-center text-xs">
                     <span className="font-bold text-brand-muted">Parcelas:</span>
                     <span className="font-black text-amber-600 font-mono">{presetContract.installments?.length}x</span>
