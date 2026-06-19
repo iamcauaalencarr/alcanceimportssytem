@@ -109,6 +109,20 @@ export default function ContractSigningFlow({
     };
   }, []);
 
+  const handleClose = () => {
+    const isDirty = 
+      (!presetContract && (clientData.name !== '' || clientData.cpf !== '' || clientData.phone !== '' || clientData.address !== '')) ||
+      signatureData !== null ||
+      Object.keys(clientDocs).length > 0;
+
+    if (isDirty && step !== 'success') {
+      if (!window.confirm('Tem certeza que deseja sair? Os dados preenchidos serão perdidos.')) {
+        return;
+      }
+    }
+    onClose();
+  };
+
   // Docs already uploaded by admin in draft?
   const adminDocs = presetContract?.documents;
   const needsRgFront = presetContract && !adminDocs?.rgFront;
@@ -272,11 +286,11 @@ export default function ContractSigningFlow({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-fade-in font-sans"
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-0 overflow-hidden animate-fade-in font-sans"
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div
-        className="bg-white dark:bg-zinc-900 rounded-3xl max-w-2xl w-full p-4 sm:p-6 md:p-8 shadow-2xl relative border border-gray-150 dark:border-zinc-800 flex flex-col my-2 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-hidden"
+        className="bg-white dark:bg-zinc-900 w-full h-full flex flex-col p-4 sm:p-6 md:p-8 shadow-2xl relative overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -297,7 +311,7 @@ export default function ContractSigningFlow({
             </div>
           </div>
           {step !== 'success' && !presetContract && (
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors cursor-pointer">
+            <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors cursor-pointer">
               <X className="w-5 h-5" />
             </button>
           )}
@@ -813,7 +827,7 @@ export default function ContractSigningFlow({
         <div className="border-t border-gray-150 dark:border-zinc-800 pt-4 mt-5 flex-shrink-0 flex gap-3">
           {step === 'form' && !presetContract && (
             <>
-              <button type="button" onClick={onClose}
+              <button type="button" onClick={handleClose}
                 className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-brand-secondary text-xs font-bold rounded-xl transition-all cursor-pointer">
                 Voltar ao Orçamento
               </button>
