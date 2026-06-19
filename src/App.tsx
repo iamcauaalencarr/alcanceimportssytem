@@ -1342,47 +1342,47 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1.5 -mx-4 px-4 scrollbar-none shrink-0 w-[calc(100%+2rem)] md:w-auto md:mx-0 md:px-0 md:pb-0 select-none">
               <button 
                 onClick={() => setAdminTab('products')} 
-                className={`px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${adminTab === 'products' ? 'bg-brand-secondary dark:bg-zinc-850 text-white' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-brand-muted hover:text-brand-secondary dark:hover:text-white'}`}
+                className={`px-3 py-2 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer ${adminTab === 'products' ? 'bg-brand-secondary dark:bg-zinc-850 text-white' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-brand-muted hover:text-brand-secondary dark:hover:text-white'}`}
               >
                 Gerenciar Catálogo
               </button>
               <button 
                 onClick={() => setAdminTab('bulk-adjust')} 
-                className={`px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${adminTab === 'bulk-adjust' ? 'bg-brand-secondary dark:bg-zinc-850 text-white' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-brand-muted hover:text-brand-secondary dark:hover:text-white'}`}
+                className={`px-3 py-2 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer ${adminTab === 'bulk-adjust' ? 'bg-brand-secondary dark:bg-zinc-850 text-white' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-brand-muted hover:text-brand-secondary dark:hover:text-white'}`}
               >
                 Ajuste em Lote
               </button>
               <button 
                 onClick={() => setAdminTab('settings')} 
-                className={`px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${adminTab === 'settings' ? 'bg-brand-secondary dark:bg-zinc-850 text-white' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-brand-muted hover:text-brand-secondary dark:hover:text-white'}`}
+                className={`px-3 py-2 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer ${adminTab === 'settings' ? 'bg-brand-secondary dark:bg-zinc-850 text-white' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-brand-muted hover:text-brand-secondary dark:hover:text-white'}`}
               >
                 Configurações
               </button>
               <button 
                 onClick={() => setAdminTab('contracts')} 
-                className={`px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${adminTab === 'contracts' ? 'bg-brand-secondary dark:bg-zinc-850 text-white' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-brand-muted hover:text-brand-secondary dark:hover:text-white'}`}
+                className={`px-3 py-2 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${adminTab === 'contracts' ? 'bg-brand-secondary dark:bg-zinc-850 text-white' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-brand-muted hover:text-brand-secondary dark:hover:text-white'}`}
               >
                 Contratos
                 {contracts.filter(c => c.status === 'signed').length > 0 && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF] inline-block animate-pulse"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF] inline-block animate-pulse shrink-0"></span>
                 )}
               </button>
               <button 
                 onClick={() => { setCurrentView('client'); triggerToast("Visualizando catálogo"); }} 
-                className="px-3 py-2 text-xs font-bold bg-brand-primary text-white hover:bg-blue-600 rounded-lg flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                className="px-3 py-2 text-xs font-bold bg-brand-primary text-white hover:bg-blue-600 rounded-lg flex items-center gap-1.5 transition-all shadow-sm shrink-0 cursor-pointer"
               >
-                <Eye className="w-3.5 h-3.5" />
+                <Eye className="w-3.5 h-3.5 shrink-0" />
                 Ver Loja
               </button>
               <button 
                 onClick={() => { setCurrentView('client'); triggerToast("Logout realizado"); }} 
-                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all cursor-pointer" 
+                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all shrink-0 cursor-pointer" 
                 title="Sair do Administrador"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 shrink-0" />
               </button>
             </div>
           </div>
@@ -1948,8 +1948,8 @@ export default function App() {
 
         {/* Color Editor Modal */}
         {editingProductIdx !== null && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6 flex flex-col max-h-[85vh] overflow-hidden border border-gray-100 dark:border-zinc-800">
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-fade-in">
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-6 flex flex-col max-h-[92vh] sm:max-h-[85vh] overflow-hidden border border-gray-100 dark:border-zinc-800">
               <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 pb-3">
                 <div>
                   <h3 className="text-base font-extrabold text-brand-secondary dark:text-white">Editor de Cores e Imagens</h3>
@@ -2214,9 +2214,9 @@ export default function App() {
           <div className="absolute right-0 top-0 w-64 h-64 bg-brand-primary/5 rounded-full blur-3xl -z-10"></div>
           <div className="flex-grow space-y-4 text-center md:text-left">
             <span className="text-[10px] font-bold text-brand-primary tracking-[0.25em] uppercase block">Produtos Sob Encomenda</span>
-            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-brand-secondary dark:text-white leading-none uppercase">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-brand-secondary dark:text-white leading-none uppercase">
               CATÁLOGO DE IMPORTADOS<br/>
-              <span className="text-brand-primary font-serif italic text-2xl md:text-3xl normal-case tracking-normal">Premium & Garantia Apple</span>
+              <span className="text-brand-primary font-serif italic text-xl sm:text-2xl md:text-3xl normal-case tracking-normal">Premium & Garantia Apple</span>
             </h2>
             <p className="text-xs text-brand-muted dark:text-zinc-400 max-w-md leading-relaxed">
               Todos os aparelhos são lacrados de fábrica e possuem garantia mundial de 1 ano válida diretamente com a Apple. Compre com a segurança de um contrato juridicamente assinado.
@@ -2388,8 +2388,9 @@ export default function App() {
                               </span>
                               <button 
                                 onClick={() => setSimulatingProduct(p)}
-                                className="text-[9px] text-brand-primary hover:text-blue-600 dark:hover:text-blue-400 font-extrabold mt-1.5 block w-full cursor-pointer hover:underline"
+                                className="py-2 bg-brand-primary/5 hover:bg-brand-primary/10 text-brand-primary text-[10px] font-bold rounded-xl flex items-center justify-center gap-1.5 mt-2.5 w-full cursor-pointer transition-colors border border-transparent"
                               >
+                                <CreditCard className="w-3.5 h-3.5" />
                                 Simular Parcelamento
                               </button>
                             </div>
@@ -2489,8 +2490,9 @@ export default function App() {
                                 <div className="font-bold text-gray-705 dark:text-white">{p.installmentPrice}</div>
                                 <button 
                                   onClick={() => setSimulatingProduct(p)}
-                                  className="text-[9px] text-brand-primary hover:text-blue-600 dark:hover:text-blue-400 font-extrabold block ml-auto cursor-pointer hover:underline"
+                                  className="py-1 px-2.5 bg-brand-primary/5 hover:bg-brand-primary/10 text-brand-primary text-[9.5px] font-bold rounded-lg flex items-center justify-center gap-1 ml-auto cursor-pointer transition-colors border border-transparent"
                                 >
+                                  <CreditCard className="w-3 h-3" />
                                   Simular parcelas
                                 </button>
                               </td>
@@ -2620,7 +2622,7 @@ export default function App() {
           
           <div className="absolute inset-0 -z-10" onClick={() => setIsCartOpen(false)} />
           
-          <div className="bg-white dark:bg-zinc-900 border-l dark:border-zinc-800 max-w-md w-full h-full flex flex-col p-6 shadow-2xl animate-slide-in relative">
+          <div className="bg-white dark:bg-zinc-900 border-l dark:border-zinc-800 max-w-md w-full h-full flex flex-col p-4 sm:p-6 shadow-2xl animate-slide-in relative">
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 pb-4">
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-brand-primary" />
@@ -2738,8 +2740,8 @@ export default function App() {
 
       {/* Installment Simulator Modal */}
       {simulatingProduct !== null && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 flex flex-col max-h-[90vh] overflow-hidden border border-gray-100 dark:border-zinc-800">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-sm w-full p-4 sm:p-6 shadow-2xl space-y-4 flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden border border-gray-100 dark:border-zinc-800">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 pb-3">
               <div>
@@ -2751,7 +2753,7 @@ export default function App() {
                   setSimulatingProduct(null);
                   setDownPaymentInput(0);
                 }}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2851,7 +2853,7 @@ export default function App() {
                         setDownPaymentInput(val);
                       }
                     }}
-                    className="w-full text-xs bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl pl-9 pr-9 py-2 text-brand-secondary dark:text-white focus:outline-none focus:border-brand-primary font-mono transition-all"
+                    className="w-full text-xs bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl pl-9 pr-9 py-2.5 text-brand-secondary dark:text-white focus:outline-none focus:border-brand-primary font-mono transition-all"
                   />
                   {downPaymentInput > 0 && (
                     <button 
@@ -2864,7 +2866,7 @@ export default function App() {
                 </div>
 
                 {/* Down Payment presets */}
-                <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-0.5">
                   {[500, 1000, 2000, 3000].map(preset => {
                     const cashVal = parsePrice(simulatingProduct.cashPrice);
                     if (preset >= cashVal) return null;
@@ -2955,8 +2957,8 @@ export default function App() {
 
       {/* INSTRUCTIONS MODAL: COPIED CLIPBOARD DIALOG */}
       {showCopyOverlay && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-5 flex flex-col border border-gray-100 dark:border-zinc-850">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl space-y-5 flex flex-col border border-gray-100 dark:border-zinc-850">
             <div className="flex flex-col items-center text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-950/20 text-[#25D366] flex items-center justify-center shadow-inner select-none">
                 <CheckCircle className="w-6 h-6" />

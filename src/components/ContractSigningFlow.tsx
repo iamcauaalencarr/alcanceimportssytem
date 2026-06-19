@@ -264,11 +264,11 @@ export default function ContractSigningFlow({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in font-sans"
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-fade-in font-sans"
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div
-        className="bg-white dark:bg-zinc-900 rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl relative border border-gray-150 dark:border-zinc-800 flex flex-col my-8 max-h-[90vh]"
+        className="bg-white dark:bg-zinc-900 rounded-3xl max-w-2xl w-full p-4 sm:p-6 md:p-8 shadow-2xl relative border border-gray-150 dark:border-zinc-800 flex flex-col my-2 sm:my-8 max-h-[95vh] sm:max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
