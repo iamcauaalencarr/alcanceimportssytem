@@ -913,12 +913,10 @@ export default function App() {
 
   const generateShareLink = () => {
     try {
-      const dataString = JSON.stringify(products);
-      const base64Data = btoa(unescape(encodeURIComponent(dataString)));
-      const shareUrl = `${window.location.origin}${window.location.pathname}#data=${base64Data}`;
+      const shareUrl = `${window.location.origin}${window.location.pathname}`;
       
       navigator.clipboard.writeText(shareUrl).then(() => {
-        triggerToast("Link de orçamentos copiado! Compartilhe com o cliente.");
+        triggerToast("Link do catálogo copiado! Compartilhe com o cliente.");
       }).catch(() => {
         const dummy = document.createElement("input");
         document.body.appendChild(dummy);
@@ -926,7 +924,7 @@ export default function App() {
         dummy.select();
         document.execCommand("copy");
         document.body.removeChild(dummy);
-        triggerToast("Link copiado!");
+        triggerToast("Link do catálogo copiado!");
       });
     } catch (err) {
       console.error("Erro ao criar link", err);
