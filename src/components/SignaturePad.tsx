@@ -11,6 +11,11 @@ export default function SignaturePad({ onSignatureChange }: SignaturePadProps) {
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
 
+  const signatureChangeRef = useRef(onSignatureChange);
+  useEffect(() => {
+    signatureChangeRef.current = onSignatureChange;
+  }, [onSignatureChange]);
+
   const clearSignature = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -20,8 +25,8 @@ export default function SignaturePad({ onSignatureChange }: SignaturePadProps) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setHasDrawn(false);
     setIsDrawing(false);
-    onSignatureChange(null);
-  }, [onSignatureChange]);
+    signatureChangeRef.current(null);
+  }, []);
 
   // Resize canvas to fit container
   useEffect(() => {

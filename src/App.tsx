@@ -1109,7 +1109,10 @@ export default function App() {
 
   const generateShareLink = () => {
     try {
-      const shareUrl = `${window.location.origin}${window.location.pathname}`;
+      const origin = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+        ? 'https://alcanceimportss.vercel.app'
+        : window.location.origin;
+      const shareUrl = `${origin}${window.location.pathname}`;
       
       navigator.clipboard.writeText(shareUrl).then(() => {
         triggerToast("Link do catálogo copiado! Compartilhe com o cliente.");

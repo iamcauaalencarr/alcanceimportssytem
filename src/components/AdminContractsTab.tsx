@@ -524,7 +524,10 @@ export default function AdminContractsTab({
 
     onUpdateContracts([...contracts, newContract]);
 
-    const signLink = `${window.location.origin}${window.location.pathname}#sign-contract=${contractId}`;
+    const origin = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+      ? 'https://alcanceimportss.vercel.app'
+      : window.location.origin;
+    const signLink = `${origin}${window.location.pathname}#sign-contract=${contractId}`;
     setGeneratedLinkInfo({
       link: signLink,
       clientName: clientForm.name,
@@ -843,7 +846,10 @@ export default function AdminContractsTab({
                           {c.status === 'pending' && (
                             <button
                               onClick={() => {
-                                const signLink = `${window.location.origin}${window.location.pathname}#sign-contract=${c.id}`;
+                                const origin = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+                                  ? 'https://alcanceimportss.vercel.app'
+                                  : window.location.origin;
+                                const signLink = `${origin}${window.location.pathname}#sign-contract=${c.id}`;
                                 setGeneratedLinkInfo({
                                   link: signLink,
                                   clientName: c.clientName,
