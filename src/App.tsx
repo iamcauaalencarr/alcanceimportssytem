@@ -11,7 +11,6 @@ import ContractSigningFlow from './components/ContractSigningFlow';
 import AdminContractsTab from './components/AdminContractsTab';
 import { DEFAULT_PRODUCTS, SECTIONS_METADATA } from './constants';
 import productsData from './products-data.json';
-import settingsData from './settings-data.json';
 import { 
   fetchContracts, 
   saveAllContractsToSupabase, 
@@ -20,7 +19,15 @@ import {
   saveStoreConfig 
 } from './supabaseClient';
 
-const typedSettingsData = settingsData as Record<string, any>;
+const typedSettingsData: Record<string, any> = {
+  storeName: "ALCANCE IMPORTS",
+  storeWhatsApp: "5568999027454",
+  storeInstagram: "@alcance.imports",
+  storeWebsite: "www.alcanceimports.com",
+  adminPIN: "908077",
+  cardTaxBase: 2.5,
+  cardTaxMonthly: 1.2
+};
 
 const Instagram = (props: SVGProps<SVGSVGElement>) => (
   <svg
