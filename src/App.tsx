@@ -20,7 +20,17 @@ import {
   saveStoreConfig 
 } from './supabaseClient';
 
-const typedSettingsData: Record<string, any> = {
+interface SettingsData {
+  storeName: string;
+  storeWhatsApp: string;
+  storeInstagram: string;
+  storeWebsite: string;
+  adminPIN: string;
+  cardTaxBase: number;
+  cardTaxMonthly: number;
+}
+
+const typedSettingsData: SettingsData = {
   storeName: "ALCANCE IMPORTS",
   storeWhatsApp: "5568999027454",
   storeInstagram: "@alcance.imports",
@@ -58,7 +68,7 @@ const cleanProductImageUrls = (prods: Product[]): Product[] => {
         }
         // Also clean up absolute Vercel links from new domains to make them robust relative paths
         if (c.img.startsWith("http") && (c.img.includes("alcanceimportss.vercel.app/") || c.img.includes("sistema-vendas-tau.vercel.app/"))) {
-          const matched = c.img.match(/https?:\/\/[^\/]+\/(.*)/);
+          const matched = c.img.match(/https?:\/\/[^/]+\/(.*)/);
           if (matched) {
             return { ...c, img: matched[1] };
           }
@@ -234,21 +244,23 @@ export default function App() {
     key: string,
     value: number
   ) => {
-    setCardRates((prev: any) => {
+    setCardRates((prev: typeof defaultRates) => {
       const updated = { ...prev };
       if (type === 'maquininha') {
+        const sub = subType as 'visa_master' | 'elo_amex';
         updated.maquininha = {
           ...updated.maquininha,
-          [subType]: {
-            ...updated.maquininha[subType],
+          [sub]: {
+            ...updated.maquininha[sub],
             [key]: value
           }
         };
       } else {
+        const sub = subType as 'todas_bandeiras';
         updated.link_pagamento = {
           ...updated.link_pagamento,
-          [subType]: {
-            ...updated.link_pagamento[subType],
+          [sub]: {
+            ...updated.link_pagamento[sub],
             [key]: value
           }
         };
@@ -531,12 +543,12 @@ export default function App() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  const triggerToast = (msg: string) => {
+  function triggerToast(msg: string) {
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage(null);
     }, 3500);
-  };
+  }
 
   const handleImageUpload = (file: File, callback: (base64: string) => void) => {
     const reader = new FileReader();
@@ -1010,7 +1022,7 @@ export default function App() {
     method: 'maquininha' | 'link_pagamento' = simulationMethod, 
     brand: 'visa_master' | 'elo_amex' = simulationBrand
   ): { installmentValue: number; totalValue: number } => {
-    let rate = 0;
+    let rate: number;
     if (method === 'maquininha') {
       const brandRates = cardRates.maquininha[brand] || {};
       if (months === 0) {

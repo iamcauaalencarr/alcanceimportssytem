@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { RotateCcw } from 'lucide-react';
 
 interface SignaturePadProps {
@@ -10,6 +10,18 @@ export default function SignaturePad({ onSignatureChange }: SignaturePadProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
+
+  const clearSignature = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasDrawn(false);
+    setIsDrawing(false);
+    onSignatureChange(null);
+  }, [onSignatureChange]);
 
   // Resize canvas to fit container
   useEffect(() => {
@@ -29,7 +41,7 @@ export default function SignaturePad({ onSignatureChange }: SignaturePadProps) {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     return () => window.removeEventListener('resize', resizeCanvas);
-  }, []);
+  }, [clearSignature]);
 
   const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -94,18 +106,6 @@ export default function SignaturePad({ onSignatureChange }: SignaturePadProps) {
     if (canvas && hasDrawn) {
       onSignatureChange(canvas.toDataURL('image/png'));
     }
-  };
-
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setHasDrawn(false);
-    setIsDrawing(false);
-    onSignatureChange(null);
   };
 
   return (

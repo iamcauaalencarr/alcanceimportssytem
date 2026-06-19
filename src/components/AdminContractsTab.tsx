@@ -32,7 +32,7 @@ export default function AdminContractsTab({
 
   // Contract creation states
   const [isCreating, setIsCreating] = useState(false);
-  const [clientForm, setClientForm] = useState({
+  const [clientForm, setClientForm] = useState(() => ({
     name: '',
     cpf: '',
     phone: '',
@@ -54,7 +54,7 @@ export default function AdminContractsTab({
     tradeCondition: 'good' as 'new' | 'seminew' | 'good' | 'regular' | 'defective',
     tradeDescription: '',
     tradeValue: 'R$ 0,00',
-  });
+  }));
 
   // Photo uploads state in form
   const [tradePhoto, setTradePhoto] = useState<string>('');
@@ -375,7 +375,7 @@ export default function AdminContractsTab({
     setCustomPayments(prev => prev.filter(p => p.id !== id));
   };
 
-  const handleUpdateCustomPayment = (id: string, field: string, value: any) => {
+  const handleUpdateCustomPayment = (id: string, field: keyof CustomPaymentInput, value: string) => {
     setCustomPayments(prev => prev.map(p => {
       if (p.id === id) {
         return { ...p, [field]: value };
@@ -1678,7 +1678,7 @@ export default function AdminContractsTab({
                         <label className="text-[9px] font-bold text-brand-muted dark:text-zinc-400 uppercase">Estado de Conservação</label>
                         <select
                           value={clientForm.tradeCondition}
-                          onChange={(e) => setClientForm(prev => ({ ...prev, tradeCondition: e.target.value as any }))}
+                          onChange={(e) => setClientForm(prev => ({ ...prev, tradeCondition: e.target.value as 'new' | 'seminew' | 'good' | 'regular' | 'defective' }))}
                           className="w-full text-xs bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl px-2.5 py-2.5 text-brand-secondary dark:text-white focus:outline-none cursor-pointer"
                         >
                           <option value="new">Novo (Na caixa lacrado)</option>
@@ -1753,7 +1753,7 @@ export default function AdminContractsTab({
                       <button
                         key={method}
                         type="button"
-                        onClick={() => setClientForm(prev => ({ ...prev, paymentMethod: method as any }))}
+                        onClick={() => setClientForm(prev => ({ ...prev, paymentMethod: method as 'pix' | 'card' | 'fiado' | 'custom' }))}
                         className={`p-3.5 rounded-2xl border text-center font-bold text-xs transition-all cursor-pointer ${
                           isSelected 
                             ? 'border-brand-primary bg-brand-primary/5 text-brand-primary' 
@@ -1870,7 +1870,7 @@ export default function AdminContractsTab({
                             <label className="text-[8px] font-bold text-brand-muted uppercase block">Status Inicial</label>
                             <select
                               value={payment.status}
-                              onChange={(e) => handleUpdateCustomPayment(payment.id, 'status', e.target.value as any)}
+                              onChange={(e) => handleUpdateCustomPayment(payment.id, 'status', e.target.value as 'pending' | 'paid')}
                               className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 focus:outline-none font-semibold text-brand-secondary dark:text-white"
                             >
                               <option value="pending">Pendente (a cobrar)</option>
