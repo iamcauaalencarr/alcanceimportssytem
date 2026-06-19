@@ -17,7 +17,8 @@ import {
   saveAllContractsToSupabase, 
   deleteContractFromSupabase,
   fetchStoreConfig,
-  saveStoreConfig 
+  saveStoreConfig,
+  supabase
 } from './supabaseClient';
 
 interface SettingsData {
@@ -382,6 +383,51 @@ export default function App() {
       }
     };
     loadData();
+  }, []);
+
+  // Supabase Realtime Subscription for Contracts
+  useEffect(() => {
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel('contracts-realtime-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'contracts' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newContract = payload.new as Contract;
+            setContracts((prev) => {
+              const exists = prev.some((c) => c.id === newContract.id);
+              if (exists) return prev;
+              const updated = [newContract, ...prev];
+              localStorage.setItem("alcance_imports_contracts", JSON.stringify(updated));
+              return updated;
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedContract = payload.new as Contract;
+            setContracts((prev) => {
+              const updated = prev.map((c) => (c.id === updatedContract.id ? updatedContract : c));
+              localStorage.setItem("alcance_imports_contracts", JSON.stringify(updated));
+              return updated;
+            });
+          } else if (payload.eventType === 'DELETE') {
+            const oldId = payload.old?.id;
+            if (oldId) {
+              setContracts((prev) => {
+                const updated = prev.filter((c) => c.id !== oldId);
+                localStorage.setItem("alcance_imports_contracts", JSON.stringify(updated));
+                return updated;
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (supabase) supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleUpdateContracts = async (updatedList: Contract[]) => {

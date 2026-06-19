@@ -39,9 +39,11 @@ export async function fetchContracts(): Promise<Contract[]> {
 
 export async function saveContractToSupabase(contract: Contract): Promise<void> {
   if (!supabase) return;
+  const cleanContract = { ...contract };
+  delete cleanContract.audit;
   const { error } = await supabase
     .from('contracts')
-    .upsert(contract);
+    .upsert(cleanContract);
 
   if (error) {
     console.error('Erro ao salvar contrato no Supabase:', error);
@@ -51,9 +53,14 @@ export async function saveContractToSupabase(contract: Contract): Promise<void> 
 
 export async function saveAllContractsToSupabase(contractsList: Contract[]): Promise<void> {
   if (!supabase || contractsList.length === 0) return;
+  const cleanList = contractsList.map(c => {
+    const clean = { ...c };
+    delete clean.audit;
+    return clean;
+  });
   const { error } = await supabase
     .from('contracts')
-    .upsert(contractsList);
+    .upsert(cleanList);
 
   if (error) {
     console.error('Erro ao salvar todos os contratos no Supabase:', error);

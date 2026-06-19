@@ -6,6 +6,7 @@ import {
   Calendar, Upload, AlertTriangle, ShieldCheck
 } from 'lucide-react';
 import type { Contract, Product, CartItem, Installment } from '../types';
+import { generateContractPDF } from '../utils/pdfGenerator';
 
 interface AdminContractsTabProps {
   contracts: Contract[];
@@ -670,136 +671,9 @@ export default function AdminContractsTab({
     onUpdateContracts(updatedContracts);
   };
 
-  // Print contract in a new clean window
+  // Generate and download contract PDF
   const handlePrintContract = (c: Contract) => {
-    const condLabels: Record<string, string> = {
-      new: 'Novo (lacrado)', seminew: 'Seminovo (excelente)', good: 'Bom estado',
-      regular: 'Estado regular', defective: 'Com defeito'
-    };
-    const payLabels: Record<string, string> = {
-      pix: 'PIX / Transferência Bancária',
-      card: 'Cartão de Crédito',
-      fiado: 'Fiado / A Prazo',
-      custom: 'Misto / Personalizado'
-    };
-    const fmtDate = (d?: string) => {
-      if (!d) return '—';
-      const [y, m, dd] = d.split('-');
-      return `${dd}/${m}/${y}`;
-    };
-
-    const installmentRows = c.installments?.map(inst => `
-      <tr style="border-bottom:1px solid #eee">
-        <td style="padding:6px 8px;font-weight:bold;color:#0A84FF">
-          ${c.paymentMethod === 'custom' ? `${inst.id} — ${inst.method || 'Pagamento'}` : inst.id}
-        </td>
-        <td style="padding:6px 8px;text-align:center">${fmtDate(inst.dueDate)}</td>
-        <td style="padding:6px 8px;text-align:right;font-weight:bold">${inst.value}</td>
-        <td style="padding:6px 8px;text-align:center">${inst.paidValue || 'R$ 0,00'}</td>
-        <td style="padding:6px 8px;text-align:center;font-weight:bold;color:${inst.status === 'paid' ? '#22c55e' : inst.status === 'overdue' ? '#ef4444' : '#888'}">${inst.status === 'paid' ? 'Pago' : inst.status === 'overdue' ? 'Em atraso' : 'Pendente'}</td>
-      </tr>
-    `).join('') || '';
-
-    const tradeSection = c.hasTrade && c.tradeDevice ? `
-      <div style="border:1px solid #ddd;border-radius:8px;padding:16px;margin-top:16px">
-        <h3 style="margin:0 0 8px;font-size:13px;color:#7c3aed">🔄 PERMUTA DE APARELHO</h3>
-        <table style="width:100%;font-size:12px">
-          <tr><td style="padding:3px 0;color:#666;width:140px">Aparelho Entregue:</td><td><strong>${c.tradeDevice.brand} ${c.tradeDevice.model} ${c.tradeDevice.storage} — ${c.tradeDevice.color}</strong></td></tr>
-          <tr><td style="padding:3px 0;color:#666">IMEI:</td><td><strong>${c.tradeDevice.imei}</strong></td></tr>
-          <tr><td style="padding:3px 0;color:#666">Estado:</td><td>${condLabels[c.tradeDevice.condition] || c.tradeDevice.condition}</td></tr>
-          ${c.tradeDevice.description ? `<tr><td style="padding:3px 0;color:#666">Obs.:</td><td>${c.tradeDevice.description}</td></tr>` : ''}
-          <tr><td style="padding:3px 0;color:#666">Valor Avaliado:</td><td><strong style="color:#22c55e">${c.tradeDevice.evaluatedValue}</strong></td></tr>
-        </table>
-        ${c.tradeDevice.photo ? `<img src="${c.tradeDevice.photo}" style="max-height:120px;border-radius:8px;margin-top:8px;border:1px solid #ddd" />` : ''}
-      </div>
-    ` : '';
-
-    const fiadoSection = (c.paymentMethod === 'fiado' || c.paymentMethod === 'custom') && c.installments ? `
-      <div style="border:1px solid #ddd;border-radius:8px;padding:16px;margin-top:16px">
-        <h3 style="margin:0 0 8px;font-size:13px;color:#d97706">
-          ${c.paymentMethod === 'custom' ? '📅 CRONOGRAMA DE PAGAMENTO MISTO / PERSONALIZADO' : '📅 CRONOGRAMA DE PARCELAS (FIADO)'}
-        </h3>
-        <p style="font-size:12px;margin:0 0 8px">
-          ${parsePrice(c.fiadoDownPayment || 'R$ 0,00') > 0 ? `Entrada/Sinal: <strong>${c.fiadoDownPayment}</strong> | ` : ''}
-          Saldo Devedor: <strong style="color:#ef4444">${formatPrice(getRemainingDebt(c))}</strong>
-        </p>
-        <table style="width:100%;font-size:12px;border-collapse:collapse">
-          <thead><tr style="background:#f5f5f7;font-size:11px;font-weight:bold;color:#666">
-            <th style="padding:6px 8px;text-align:left">${c.paymentMethod === 'custom' ? 'Parcela / Forma' : 'Parc.'}</th>
-            <th style="padding:6px 8px;text-align:center">Vencimento</th>
-            <th style="padding:6px 8px;text-align:right">Valor</th>
-            <th style="padding:6px 8px;text-align:center">Pago</th>
-            <th style="padding:6px 8px;text-align:center">Status</th>
-          </tr></thead>
-          <tbody>${installmentRows}</tbody>
-        </table>
-      </div>
-    ` : '';
-
-    const docSection = c.documents ? `
-      <div style="border:1px solid #ddd;border-radius:8px;padding:16px;margin-top:16px">
-        <h3 style="margin:0 0 8px;font-size:13px;color:#0A84FF">📎 DOCUMENTOS DO CLIENTE</h3>
-        <div style="display:flex;gap:12px;flex-wrap:wrap">
-          ${c.documents.rgFront ? `<div><p style="font-size:10px;color:#666;margin:0 0 4px">RG/CNH Frente</p><img src="${c.documents.rgFront}" style="max-height:100px;border-radius:6px;border:1px solid #ddd" /></div>` : ''}
-          ${c.documents.rgBack ? `<div><p style="font-size:10px;color:#666;margin:0 0 4px">RG/CNH Verso</p><img src="${c.documents.rgBack}" style="max-height:100px;border-radius:6px;border:1px solid #ddd" /></div>` : ''}
-          ${c.documents.addressProof ? `<div><p style="font-size:10px;color:#666;margin:0 0 4px">Comprovante</p><img src="${c.documents.addressProof}" style="max-height:100px;border-radius:6px;border:1px solid #ddd" /></div>` : ''}
-        </div>
-      </div>
-    ` : '';
-
-    const sigSection = c.signature ? `
-      <div style="border:1px solid #ddd;border-radius:8px;padding:16px;margin-top:16px;text-align:center">
-        <h3 style="margin:0 0 8px;font-size:13px;color:#111">✍️ ASSINATURA DIGITAL DO CLIENTE</h3>
-        <img src="${c.signature}" style="max-height:100px;border-radius:6px;border:1px solid #e5e7eb" />
-        <p style="font-size:10px;color:#888;margin:6px 0 0">Assinado em: ${new Date(c.date).toLocaleString('pt-BR')}</p>
-      </div>
-    ` : '';
-
-    const printWindow = window.open('', '_blank', 'width=900,height=800');
-    if (!printWindow) return;
-    printWindow.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
-      <meta charset="UTF-8" /><title>Contrato ${c.id} — ${storeName}</title>
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #111; padding: 32px; max-width: 800px; margin: 0 auto; }
-        h1 { font-size: 18px; text-align: center; margin-bottom: 4px; }
-        h2 { font-size: 14px; font-weight: 800; color: #0A84FF; margin: 20px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { padding: 8px; border: 1px solid #eee; }
-        th { background: #f5f5f7; font-weight: bold; }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
-        @media print { button { display: none; } }
-      </style>
-    </head><body>
-      <h1>CONTRATO DE ENCOMENDA — ${c.id}</h1>
-      <p style="text-align:center;font-size:12px;color:#888;margin:0 0 24px">${storeName}</p>
-      <h2>DADOS DO CLIENTE</h2>
-      <table><tr><td style="width:140px;color:#666">Nome:</td><td><strong>${c.clientName}</strong></td></tr>
-        <tr><td style="color:#666">CPF:</td><td>${c.clientCPF}</td></tr>
-        <tr><td style="color:#666">Telefone:</td><td>${c.clientPhone}</td></tr>
-        ${c.clientEmail ? `<tr><td style="color:#666">E-mail:</td><td>${c.clientEmail}</td></tr>` : ''}
-        <tr><td style="color:#666">Endereço:</td><td>${c.clientAddress}</td></tr>
-      </table>
-      <h2>EQUIPAMENTOS</h2>
-      <table><thead><tr><th>Modelo</th><th>Capacidade</th><th>Cor</th><th>Qtd.</th><th>Preço Unit.</th></tr></thead>
-        <tbody>${c.items.map(i => `<tr><td>${i.model}</td><td>${i.storage}</td><td>${i.colorName}</td><td style="text-align:center">${i.quantity}</td><td style="text-align:right;font-weight:bold">${i.cashPrice}</td></tr>`).join('')}</tbody>
-      </table>
-      <h2>VALORES E DATAS</h2>
-      <table>
-        <tr><td style="width:180px;color:#666">Total à Vista (PIX):</td><td><strong style="color:#0A84FF">${c.cashTotal}</strong></td></tr>
-        <tr><td style="color:#666">Forma de Pagamento:</td><td><strong>${payLabels[c.paymentMethod] || c.paymentMethod}</strong></td></tr>
-        <tr><td style="color:#666">Início:</td><td>${fmtDate(c.startDate)}</td></tr>
-        <tr><td style="color:#666">Entrega Estimada:</td><td>${fmtDate(c.deliveryDate)}</td></tr>
-        <tr><td style="color:#666">Expiração do Contrato:</td><td>${fmtDate(c.expirationDate)}</td></tr>
-        ${c.observations ? `<tr><td style="color:#666">Observações:</td><td>${c.observations}</td></tr>` : ''}
-      </table>
-      ${tradeSection}
-      ${fiadoSection}
-      ${docSection}
-      ${sigSection}
-      <p style="font-size:10px;color:#aaa;text-align:right;margin-top:32px">Gerado em: ${new Date().toLocaleString('pt-BR')} — ${storeName}</p>
-      <div style="text-align:center;margin-top:16px"><button onclick="window.print()" style="padding:10px 24px;background:#0A84FF;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer">🖨️ Imprimir / Salvar PDF</button></div>
-    </body></html>`);
-    printWindow.document.close();
+    generateContractPDF(c, storeName);
   };
 
   return (
@@ -1361,7 +1235,7 @@ export default function AdminContractsTab({
                 className="py-3 px-5 bg-brand-primary hover:bg-blue-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
-                Imprimir / PDF
+                Baixar PDF
               </button>
               <button
                 type="button"

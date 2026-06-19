@@ -5,7 +5,7 @@ import {
   Upload, Image as ImageIcon, Camera, CreditCard, RefreshCw,
   AlertTriangle, Package, Calendar, DollarSign
 } from 'lucide-react';
-import type { CartItem, Contract, ClientDocuments } from '../types';
+import type { CartItem, Contract, ClientDocuments, ContractAudit } from '../types';
 import SignaturePad from './SignaturePad';
 
 interface ContractSigningFlowProps {
@@ -192,6 +192,39 @@ export default function ContractSigningFlow({
     if (!signatureData || !agreedToTerms) return;
     setIsSubmitting(true);
 
+    // Fetch IP and Geo location silently with a short timeout
+    let ipData = { ip: '—', location: '—' };
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+      clearTimeout(id);
+      if (res.ok) {
+        const json = await res.json();
+        const city = json.city || '';
+        const region = json.region_code || json.region || '';
+        const country = json.country_name || '';
+        const locationParts = [city, region, country].filter(Boolean);
+        ipData = {
+          ip: json.ip || '—',
+          location: locationParts.join(', ') || '—'
+        };
+      }
+    } catch (e) {
+      console.warn('Silent geolocation fetch failed:', e);
+    }
+
+    const auditObj: ContractAudit = {
+      ip: ipData.ip,
+      userAgent: navigator.userAgent,
+      location: ipData.location,
+      timestamp: new Date().toLocaleString('pt-BR')
+    };
+
+    const auditText = `\n\n--- AUDITORIA DE ASSINATURA ---\nIP: ${auditObj.ip}\nLocalização: ${auditObj.location}\nNavegador: ${auditObj.userAgent}\nData/Hora: ${auditObj.timestamp}`;
+    const currentObs = presetContract ? (presetContract.observations || '') : (clientData.observations || '');
+    const finalObservations = (currentObs + auditText).trim();
+
     let updatedContract: Contract;
 
     if (presetContract) {
@@ -208,7 +241,9 @@ export default function ContractSigningFlow({
         signature: signatureData,
         status: 'signed',
         date: new Date().toISOString(),
-        documents: Object.keys(mergedDocs).length > 0 ? mergedDocs : presetContract.documents
+        observations: finalObservations,
+        documents: Object.keys(mergedDocs).length > 0 ? mergedDocs : presetContract.documents,
+        audit: auditObj
       };
     } else {
       const randomNum = Math.floor(10000 + Math.random() * 90000);
@@ -228,12 +263,13 @@ export default function ContractSigningFlow({
         signature: signatureData,
         date: new Date().toISOString(),
         status: 'signed',
-        observations: clientData.observations || undefined,
+        observations: finalObservations,
         startDate: new Date().toISOString().slice(0, 10),
         expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
         deliveryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
         paymentMethod: 'pix',
-        documents: Object.keys(clientDocs).length > 0 ? clientDocs : undefined
+        documents: Object.keys(clientDocs).length > 0 ? clientDocs : undefined,
+        audit: auditObj
       };
     }
 

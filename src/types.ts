@@ -95,4 +95,14 @@ export interface Contract {
   
   // Client Documents
   documents?: ClientDocuments;
+
+  // Audit trail details
+  audit?: ContractAudit;
+}
+
+export interface ContractAudit {
+  ip: string;
+  userAgent: string;
+  location: string;
+  timestamp: string;
 }
