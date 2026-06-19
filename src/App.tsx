@@ -46,6 +46,30 @@ const Instagram = (props: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const cleanProductImageUrls = (prods: Product[]): Product[] => {
+  return prods.map(p => {
+    if (!p.colors) return p;
+    const cleanedColors = p.colors.map(c => {
+      if (typeof c.img === 'string') {
+        // Replace old domain with relative path
+        if (c.img.includes("alcanceimportssytem.vercel.app/")) {
+          const parts = c.img.split("alcanceimportssytem.vercel.app/");
+          return { ...c, img: parts[1] };
+        }
+        // Also clean up absolute Vercel links from new domains to make them robust relative paths
+        if (c.img.startsWith("http") && (c.img.includes("alcanceimportss.vercel.app/") || c.img.includes("sistema-vendas-tau.vercel.app/"))) {
+          const matched = c.img.match(/https?:\/\/[^\/]+\/(.*)/);
+          if (matched) {
+            return { ...c, img: matched[1] };
+          }
+        }
+      }
+      return c;
+    });
+    return { ...p, colors: cleanedColors };
+  });
+};
+
 const loadInitialProducts = (): Product[] => {
   const hash = window.location.hash;
   if (hash && hash.startsWith("#data=")) {
@@ -54,7 +78,7 @@ const loadInitialProducts = (): Product[] => {
       const decodedJson = decodeURIComponent(escape(atob(base64Data)));
       const parsedProducts = JSON.parse(decodedJson);
       if (Array.isArray(parsedProducts)) {
-        return parsedProducts;
+        return cleanProductImageUrls(parsedProducts);
       }
     } catch (e) {
       console.error("Erro ao descriptografar catálogo compartilhado:", e);
@@ -64,7 +88,7 @@ const loadInitialProducts = (): Product[] => {
   const stored = localStorage.getItem("alcance_imports_pricing_interactive_colors");
   if (stored) {
     try {
-      const parsed = JSON.parse(stored) as Product[];
+      const parsed = cleanProductImageUrls(JSON.parse(stored) as Product[]);
       let updated = false;
 
       DEFAULT_PRODUCTS.forEach(defProd => {
@@ -281,8 +305,9 @@ export default function App() {
       try {
         const dbProds = await fetchStoreConfig<Product[]>('products', []);
         if (dbProds && dbProds.length > 0) {
-          setProducts(dbProds);
-          localStorage.setItem("alcance_imports_pricing_interactive_colors", JSON.stringify(dbProds));
+          const cleanedProds = cleanProductImageUrls(dbProds);
+          setProducts(cleanedProds);
+          localStorage.setItem("alcance_imports_pricing_interactive_colors", JSON.stringify(cleanedProds));
         }
       } catch (e) {
         console.warn("Falha ao buscar produtos do Supabase:", e);
@@ -411,7 +436,12 @@ export default function App() {
     }
     
     // Save to Supabase
-    saveStoreConfig('products', products).catch(err => console.warn("Erro ao salvar produtos no Supabase:", err));
+    saveStoreConfig('products', products)
+      .then(() => triggerToast("Catálogo sincronizado na nuvem!"))
+      .catch(err => {
+        console.warn("Erro ao salvar produtos no Supabase:", err);
+        triggerToast("Erro ao salvar na nuvem: " + (err.message || err));
+      });
   }, [products]);
 
   // Ensure dark mode classes are removed from body and HTML
