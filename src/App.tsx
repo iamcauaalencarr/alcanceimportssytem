@@ -11,6 +11,7 @@ import ContractSigningFlow from './components/ContractSigningFlow';
 import AdminContractsTab from './components/AdminContractsTab';
 import { DEFAULT_PRODUCTS, SECTIONS_METADATA } from './constants';
 import productsData from './products-data.json';
+import defaultRates from './rates-data.json';
 import { 
   fetchContracts, 
   saveAllContractsToSupabase, 
@@ -148,6 +149,13 @@ export default function App() {
   
   const isInitialProductsLoad = useRef(true);
   const isInitialSettingsLoad = useRef(true);
+  const isInitialRatesLoad = useRef(true);
+
+  // Card rates loaded from local storage or fallback to defaultRates JSON
+  const [cardRates, setCardRates] = useState(() => {
+    const stored = localStorage.getItem("alcance_imports_card_rates");
+    return stored ? JSON.parse(stored) : defaultRates;
+  });
 
   // Settings values (stored in LocalStorage or fall back to backend config)
   const [storeName, setStoreName] = useState(() => localStorage.getItem("alcance_imports_store_name") || typedSettingsData.storeName || "ALCANCE IMPORTS");
@@ -191,6 +199,39 @@ export default function App() {
 
   // Product simulator state
   const [simulatingProduct, setSimulatingProduct] = useState<Product | null>(null);
+  const [downPaymentInput, setDownPaymentInput] = useState<number>(0);
+  const [simulationMethod, setSimulationMethod] = useState<'maquininha' | 'link_pagamento'>('maquininha');
+  const [simulationBrand, setSimulationBrand] = useState<'visa_master' | 'elo_amex'>('visa_master');
+  const [settingsRateTab, setSettingsRateTab] = useState<'visa_master' | 'elo_amex' | 'link'>('visa_master');
+
+  const updateRate = (
+    type: 'maquininha' | 'link_pagamento',
+    subType: 'visa_master' | 'elo_amex' | 'todas_bandeiras',
+    key: string,
+    value: number
+  ) => {
+    setCardRates((prev: any) => {
+      const updated = { ...prev };
+      if (type === 'maquininha') {
+        updated.maquininha = {
+          ...updated.maquininha,
+          [subType]: {
+            ...updated.maquininha[subType],
+            [key]: value
+          }
+        };
+      } else {
+        updated.link_pagamento = {
+          ...updated.link_pagamento,
+          [subType]: {
+            ...updated.link_pagamento[subType],
+            [key]: value
+          }
+        };
+      }
+      return updated;
+    });
+  };
 
   // Admin CRUD states
   const [newProduct, setNewProduct] = useState({
@@ -285,6 +326,21 @@ export default function App() {
       } finally {
         setTimeout(() => {
           isInitialSettingsLoad.current = false;
+        }, 100);
+      }
+
+      // 4. Load rates
+      try {
+        const dbRates = await fetchStoreConfig('rates', defaultRates);
+        if (dbRates) {
+          setCardRates(dbRates);
+          localStorage.setItem("alcance_imports_card_rates", JSON.stringify(dbRates));
+        }
+      } catch (e) {
+        console.warn("Falha ao buscar taxas do Supabase:", e);
+      } finally {
+        setTimeout(() => {
+          isInitialRatesLoad.current = false;
         }, 100);
       }
     };
@@ -389,6 +445,17 @@ export default function App() {
       cardTaxMonthly
     }).catch(err => console.warn("Erro ao salvar configurações no Supabase:", err));
   }, [storeName, storeWhatsApp, storeInstagram, storeWebsite, adminPIN, cardTaxBase, cardTaxMonthly]);
+
+  // Sync rates values and push to backend when they change
+  useEffect(() => {
+    localStorage.setItem("alcance_imports_card_rates", JSON.stringify(cardRates));
+
+    if (isInitialRatesLoad.current) {
+      return;
+    }
+
+    saveStoreConfig('rates', cardRates).catch(err => console.warn("Erro ao salvar taxas no Supabase:", err));
+  }, [cardRates]);
 
   // Sync cart state to local storage
   useEffect(() => {
@@ -881,14 +948,28 @@ export default function App() {
     }
   };
 
-  const calculateInstallment = (cashVal: number, months: number): { installmentValue: number; totalValue: number } => {
-    if (months === 1) {
-      const totalValue = cashVal * (1 + cardTaxBase / 100);
-      return { installmentValue: totalValue, totalValue };
+  const calculateInstallment = (
+    cashVal: number, 
+    months: number, 
+    method: 'maquininha' | 'link_pagamento' = simulationMethod, 
+    brand: 'visa_master' | 'elo_amex' = simulationBrand
+  ): { installmentValue: number; totalValue: number } => {
+    let rate = 0;
+    if (method === 'maquininha') {
+      const brandRates = cardRates.maquininha[brand] || {};
+      if (months === 0) {
+        rate = brandRates.debito ?? 0;
+      } else {
+        rate = brandRates[String(months)] ?? 0;
+      }
+    } else {
+      const brandRates = cardRates.link_pagamento.todas_bandeiras || {};
+      rate = brandRates[String(months)] ?? 0;
     }
-    const totalValue = cashVal * (1 + cardTaxBase / 100) * Math.pow(1 + (cardTaxMonthly / 100), months);
+
+    const totalValue = rate >= 100 ? cashVal : cashVal / (1 - rate / 100);
     return {
-      installmentValue: totalValue / months,
+      installmentValue: months === 0 ? totalValue : totalValue / (months || 1),
       totalValue
     };
   };
@@ -906,6 +987,7 @@ export default function App() {
       setAdminPIN("1234");
       setCardTaxBase(2.5);
       setCardTaxMonthly(1.2);
+      setCardRates(defaultRates);
       setCart([]);
       triggerToast("Catálogo inicial restaurado!");
     }
@@ -1613,7 +1695,8 @@ export default function App() {
 
           {/* TAB 3: SETTINGS, BACKUP, PASSWORD */}
           {adminTab === 'settings' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               
               {/* Form Store Settings */}
               <div className="premium-card p-5 md:p-6 space-y-4">
@@ -1669,36 +1752,6 @@ export default function App() {
                       className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-brand-secondary dark:text-white focus:outline-none focus:border-brand-primary font-mono"
                     />
                   </div>
-
-                  <hr className="border-gray-100 dark:border-zinc-850" />
-
-                  {/* Credit Card Rates */}
-                  <h4 className="text-xs font-bold text-brand-secondary dark:text-white uppercase pt-1">Simulador de Taxas de Cartão</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-bold text-brand-muted dark:text-zinc-400 uppercase">Taxa Base de Entrada (%)</label>
-                      <input 
-                        type="number" 
-                        step="0.1"
-                        value={cardTaxBase} 
-                        onChange={(e) => setCardTaxBase(parseFloat(e.target.value) || 0)}
-                        className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-brand-secondary dark:text-white focus:outline-none font-mono"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-bold text-brand-muted dark:text-zinc-400 uppercase">Juros Mensal (%)</label>
-                      <input 
-                        type="number" 
-                        step="0.1"
-                        value={cardTaxMonthly} 
-                        onChange={(e) => setCardTaxMonthly(parseFloat(e.target.value) || 0)}
-                        className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-brand-secondary dark:text-white focus:outline-none font-mono"
-                      />
-                    </div>
-                  </div>
-                  <span className="text-[9px] text-brand-muted dark:text-zinc-400 leading-normal block italic">
-                    Essas taxas são aplicadas de forma composta para simular o parcelamento do cliente no cartão de 1x a 12x.
-                  </span>
                 </div>
               </div>
 
@@ -1748,7 +1801,127 @@ export default function App() {
               </div>
 
             </div>
-          )}
+
+            {/* Gerenciador de Taxas do Cartão */}
+            <div className="premium-card p-5 md:p-6 space-y-4 mt-6">
+              <h3 className="text-base font-extrabold text-brand-secondary dark:text-white flex items-center gap-2">
+                <Percent className="w-5 h-5 text-brand-primary" />
+                Gerenciador de Taxas do Cartão
+              </h3>
+              <p className="text-xs text-brand-muted dark:text-zinc-400 leading-relaxed">
+                Edite as taxas cobradas em cada modalidade e bandeira de cartão. O simulador do site usará esses valores em tempo real para calcular as opções dos clientes.
+              </p>
+
+              {/* Sub-tabs for rates */}
+              <div className="flex flex-wrap gap-2 border-b border-gray-100 dark:border-zinc-800 pb-3">
+                <button
+                  onClick={() => setSettingsRateTab('visa_master')}
+                  className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    settingsRateTab === 'visa_master'
+                      ? 'bg-brand-primary/10 text-brand-primary font-bold'
+                      : 'text-brand-muted hover:text-brand-secondary dark:text-zinc-400'
+                  }`}
+                >
+                  Maquininha (Visa/Master)
+                </button>
+                <button
+                  onClick={() => setSettingsRateTab('elo_amex')}
+                  className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    settingsRateTab === 'elo_amex'
+                      ? 'bg-brand-primary/10 text-brand-primary font-bold'
+                      : 'text-brand-muted hover:text-brand-secondary dark:text-zinc-400'
+                  }`}
+                >
+                  Maquininha (Elo/Amex)
+                </button>
+                <button
+                  onClick={() => setSettingsRateTab('link')}
+                  className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    settingsRateTab === 'link'
+                      ? 'bg-brand-primary/10 text-brand-primary font-bold'
+                      : 'text-brand-muted hover:text-brand-secondary dark:text-zinc-400'
+                  }`}
+                >
+                  Link de Pagamento
+                </button>
+              </div>
+
+              {/* Grid of Inputs */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                {settingsRateTab === 'visa_master' && (
+                  <>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-brand-muted uppercase">Débito (%)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={cardRates.maquininha.visa_master.debito}
+                        onChange={(e) => updateRate('maquininha', 'visa_master', 'debito', parseFloat(e.target.value) || 0)}
+                        className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-brand-secondary dark:text-white font-mono focus:outline-none focus:border-brand-primary"
+                      />
+                    </div>
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(months => (
+                      <div key={months} className="space-y-1">
+                        <label className="text-[10px] font-bold text-brand-muted uppercase">{months}x Crédito (%)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={cardRates.maquininha.visa_master[months]}
+                          onChange={(e) => updateRate('maquininha', 'visa_master', months, parseFloat(e.target.value) || 0)}
+                          className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-brand-secondary dark:text-white font-mono focus:outline-none focus:border-brand-primary"
+                        />
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {settingsRateTab === 'elo_amex' && (
+                  <>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-brand-muted uppercase">Débito (%)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={cardRates.maquininha.elo_amex.debito}
+                        onChange={(e) => updateRate('maquininha', 'elo_amex', 'debito', parseFloat(e.target.value) || 0)}
+                        className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-brand-secondary dark:text-white font-mono focus:outline-none focus:border-brand-primary"
+                      />
+                    </div>
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(months => (
+                      <div key={months} className="space-y-1">
+                        <label className="text-[10px] font-bold text-brand-muted uppercase">{months}x Crédito (%)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={cardRates.maquininha.elo_amex[months]}
+                          onChange={(e) => updateRate('maquininha', 'elo_amex', months, parseFloat(e.target.value) || 0)}
+                          className="w-full text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-brand-secondary dark:text-white font-mono focus:outline-none focus:border-brand-primary"
+                        />
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {settingsRateTab === 'link' && (
+                  <>
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(months => (
+                      <div key={months} className="space-y-1">
+                        <label className="text-[10px] font-bold text-brand-muted uppercase">{months}x Link (%)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={cardRates.link_pagamento.todas_bandeiras[months]}
+                          onChange={(e) => updateRate('link_pagamento', 'todas_bandeiras', months, parseFloat(e.target.value) || 0)}
+                          className="w-full text-xs bg-gray-50 dark:bg-zinc-805 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-brand-secondary dark:text-white font-mono focus:outline-none focus:border-brand-primary"
+                        />
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            </div>
+          </>
+        )}
 
           {adminTab === 'contracts' && (
             <AdminContractsTab
@@ -2566,38 +2739,197 @@ export default function App() {
       {/* Installment Simulator Modal */}
       {simulatingProduct !== null && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-5 flex flex-col max-h-[85vh] overflow-hidden border border-gray-100 dark:border-zinc-800">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 flex flex-col max-h-[90vh] overflow-hidden border border-gray-100 dark:border-zinc-800">
+            {/* Header */}
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 pb-3">
               <div>
                 <h3 className="text-sm font-extrabold text-brand-secondary dark:text-white uppercase tracking-wider">Simulador de Parcelas</h3>
                 <p className="text-[11px] text-brand-muted dark:text-zinc-400 mt-0.5">{simulatingProduct.model} ({simulatingProduct.storage})</p>
               </div>
               <button 
-                onClick={() => setSimulatingProduct(null)}
+                onClick={() => {
+                  setSimulatingProduct(null);
+                  setDownPaymentInput(0);
+                }}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Simulation Table List */}
-            <div className="overflow-y-auto pr-1 flex-grow space-y-2 text-xs">
-              <div className="bg-blue-50 dark:bg-blue-955/20 border border-blue-100 dark:border-blue-900/35 p-3 rounded-2xl flex justify-between items-center">
-                <span className="font-bold text-blue-800 dark:text-blue-300">À Vista (PIX):</span>
-                <span className="font-black text-brand-primary text-sm font-mono">{simulatingProduct.cashPrice}</span>
-              </div>
+            {/* Content Container (Scrollable) */}
+            <div className="overflow-y-auto pr-1 flex-grow space-y-4 text-xs select-none">
               
+              {/* Method Selector Tabs */}
               <div className="space-y-1.5">
-                <span className="text-[9px] font-bold text-brand-muted dark:text-zinc-450 uppercase tracking-wider block mb-1">Simulação no Cartão de Crédito</span>
-                {[1, 2, 3, 4, 5, 6, 8, 10, 12].map(months => {
+                <label className="text-[9px] font-bold text-brand-muted dark:text-zinc-450 uppercase tracking-wider block">
+                  Meio de Pagamento
+                </label>
+                <div className="grid grid-cols-2 gap-2 bg-gray-50 dark:bg-zinc-950 p-1 rounded-2xl border border-gray-200/40 dark:border-zinc-800/40">
+                  <button
+                    onClick={() => {
+                      setSimulationMethod('maquininha');
+                      setDownPaymentInput(0);
+                    }}
+                    className={`py-2.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all text-[11px] cursor-pointer border border-transparent ${
+                      simulationMethod === 'maquininha'
+                        ? 'bg-white dark:bg-zinc-850 shadow-md text-brand-primary dark:text-white'
+                        : 'text-brand-muted hover:text-brand-secondary dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-900/60'
+                    }`}
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    Maquininha
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSimulationMethod('link_pagamento');
+                      setDownPaymentInput(0);
+                    }}
+                    className={`py-2.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all text-[11px] cursor-pointer border border-transparent ${
+                      simulationMethod === 'link_pagamento'
+                        ? 'bg-white dark:bg-zinc-850 shadow-md text-brand-primary dark:text-white'
+                        : 'text-brand-muted hover:text-brand-secondary dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-900/60'
+                    }`}
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    Link de Pgto
+                  </button>
+                </div>
+              </div>
+
+              {/* Brand Selector (For Maquininha only) */}
+              {simulationMethod === 'maquininha' && (
+                <div className="space-y-1.5 animate-fade-in">
+                  <label className="text-[9px] font-bold text-brand-muted dark:text-zinc-450 uppercase tracking-wider block">
+                    Bandeira do Cartão
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 bg-gray-50 dark:bg-zinc-950 p-1 rounded-2xl border border-gray-200/40 dark:border-zinc-800/40">
+                    <button
+                      onClick={() => setSimulationBrand('visa_master')}
+                      className={`py-2 px-3 rounded-xl font-extrabold flex items-center justify-center gap-1.5 transition-all text-[10px] cursor-pointer border border-transparent ${
+                        simulationBrand === 'visa_master'
+                          ? 'bg-white dark:bg-zinc-850 shadow-sm text-brand-secondary dark:text-white border-gray-250/20 dark:border-zinc-800/20'
+                          : 'text-brand-muted hover:text-brand-secondary dark:hover:bg-zinc-900/40'
+                      }`}
+                    >
+                      <span className="font-semibold text-blue-600 dark:text-blue-400 font-mono">VISA / MC</span>
+                    </button>
+                    <button
+                      onClick={() => setSimulationBrand('elo_amex')}
+                      className={`py-2 px-3 rounded-xl font-extrabold flex items-center justify-center gap-1.5 transition-all text-[10px] cursor-pointer border border-transparent ${
+                        simulationBrand === 'elo_amex'
+                          ? 'bg-white dark:bg-zinc-850 shadow-sm text-brand-secondary dark:text-white border-gray-250/20 dark:border-zinc-800/20'
+                          : 'text-brand-muted hover:text-brand-secondary dark:hover:bg-zinc-900/40'
+                      }`}
+                    >
+                      <span className="font-semibold text-purple-600 dark:text-purple-400 font-mono">ELO / AMEX</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Down Payment Input Section */}
+              <div className="space-y-2 bg-gray-50/80 dark:bg-zinc-950/40 border border-gray-205 dark:border-zinc-800/50 p-3 rounded-2xl">
+                <label className="text-[9px] font-bold text-brand-muted dark:text-zinc-450 uppercase tracking-wider flex justify-between">
+                  <span>Dar Entrada (Dinheiro / PIX)</span>
+                  {downPaymentInput > 0 && <span className="text-brand-primary font-bold">Ativada</span>}
+                </label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3.5 text-xs font-bold text-brand-muted">R$</span>
+                  <input 
+                    type="text" 
+                    inputMode="numeric"
+                    placeholder="Digite o valor da entrada (opcional)"
+                    value={downPaymentInput === 0 ? '' : downPaymentInput}
+                    onChange={(e) => {
+                      const cleanVal = e.target.value.replace(/[^\d]/g, '');
+                      const val = parseFloat(cleanVal) || 0;
+                      const cashVal = parsePrice(simulatingProduct.cashPrice);
+                      if (val >= cashVal) {
+                        setDownPaymentInput(cashVal - 100 > 0 ? cashVal - 100 : 0);
+                      } else {
+                        setDownPaymentInput(val);
+                      }
+                    }}
+                    className="w-full text-xs bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl pl-9 pr-9 py-2 text-brand-secondary dark:text-white focus:outline-none focus:border-brand-primary font-mono transition-all"
+                  />
+                  {downPaymentInput > 0 && (
+                    <button 
+                      onClick={() => setDownPaymentInput(0)}
+                      className="absolute right-3 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 p-0.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Down Payment presets */}
+                <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+                  {[500, 1000, 2000, 3000].map(preset => {
+                    const cashVal = parsePrice(simulatingProduct.cashPrice);
+                    if (preset >= cashVal) return null;
+                    return (
+                      <button
+                        key={preset}
+                        onClick={() => setDownPaymentInput(preset)}
+                        className={`py-1.5 rounded-lg text-[9px] font-bold transition-all cursor-pointer border ${
+                          downPaymentInput === preset 
+                            ? 'bg-brand-primary/10 border-brand-primary text-brand-primary'
+                            : 'bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-brand-secondary dark:text-zinc-350 hover:bg-gray-50'
+                        }`}
+                      >
+                        R$ {preset}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Price Breakdown */}
+              <div className="bg-brand-primary/5 dark:bg-brand-primary/10 border border-brand-primary/10 p-3 rounded-2xl space-y-1.5">
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="font-semibold text-brand-muted dark:text-zinc-400">À Vista (PIX):</span>
+                  <span className="font-black text-brand-secondary dark:text-white font-mono">{simulatingProduct.cashPrice}</span>
+                </div>
+                {downPaymentInput > 0 && (
+                  <>
+                    <div className="flex justify-between items-center text-[11px] text-green-600 dark:text-green-400">
+                      <span className="font-semibold">Entrada (PIX/Dinheiro):</span>
+                      <span className="font-bold font-mono">-{formatPrice(downPaymentInput)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] border-t border-brand-primary/10 pt-1.5">
+                      <span className="font-extrabold text-brand-secondary dark:text-white">Saldo a Parcelar no Cartão:</span>
+                      <span className="font-black text-brand-primary font-mono">{formatPrice(parsePrice(simulatingProduct.cashPrice) - downPaymentInput)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Installment Options List */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[9px] font-bold text-brand-muted dark:text-zinc-450 uppercase tracking-wider block mb-0.5">
+                  {downPaymentInput > 0 ? "Parcelamento do Saldo" : "Opções de Parcelamento"}
+                </span>
+                
+                {(simulationMethod === 'maquininha' 
+                  ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] 
+                  : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+                ).map(months => {
                   const cashVal = parsePrice(simulatingProduct.cashPrice);
-                  const sim = calculateInstallment(cashVal, months);
+                  const financedVal = cashVal - downPaymentInput;
+                  const sim = calculateInstallment(financedVal, months);
+                  
                   return (
-                    <div key={months} className="flex justify-between items-center bg-gray-50 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-800/60 p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
-                      <span className="font-semibold text-gray-600 dark:text-zinc-400">{months}x de</span>
+                    <div key={months} className="flex justify-between items-center bg-gray-50 dark:bg-zinc-800/20 border border-gray-100 dark:border-zinc-850/60 p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800/40 transition-colors">
+                      <span className="font-bold text-gray-600 dark:text-zinc-400">
+                        {months === 0 ? "Débito" : `${months}x de`}
+                      </span>
                       <div className="text-right">
                         <span className="font-black text-gray-900 dark:text-white font-mono">{formatPrice(sim.installmentValue)}</span>
-                        <span className="text-[9px] text-brand-muted dark:text-zinc-400 block font-medium">Total: {formatPrice(sim.totalValue)}</span>
+                        <span className="text-[9px] text-brand-muted dark:text-zinc-550 block font-medium">
+                          Total: {formatPrice(sim.totalValue)}
+                          {downPaymentInput > 0 && ` (+ ${formatPrice(downPaymentInput)} ent.)`}
+                        </span>
                       </div>
                     </div>
                   );
@@ -2605,9 +2937,17 @@ export default function App() {
               </div>
             </div>
 
-            {/* Notice */}
-            <div className="text-[9.5px] text-brand-muted dark:text-zinc-400 text-center leading-normal border-t border-gray-100 dark:border-zinc-800 pt-3 italic">
-              Taxa base de {cardTaxBase}% + juros de {cardTaxMonthly}% a.m. inclusos na simulação. Sujeito a alteração de acordo com a operadora de cartão.
+            {/* Didactic Example Box */}
+            <div className="bg-gray-55 dark:bg-zinc-950 p-2.5 rounded-2xl text-[9.5px] text-brand-muted dark:text-zinc-400 leading-normal border border-gray-200/40 dark:border-zinc-800/40 animate-fade-in">
+              <span className="font-extrabold text-brand-secondary dark:text-white block mb-0.5 uppercase tracking-wider text-[8.5px]">💡 DICA DE ECONOMIA:</span>
+              Dando uma entrada em dinheiro/PIX (ex: R$ 2.000,00), as taxas serão cobradas apenas sobre o valor restante no cartão, economizando juros!
+            </div>
+
+            {/* Notice Footer */}
+            <div className="text-[9px] text-brand-muted dark:text-zinc-500 text-center leading-normal border-t border-gray-100 dark:border-zinc-800 pt-2.5 italic">
+              {simulationMethod === 'maquininha' 
+                ? `Simulado com as taxas físicas da maquininha (${simulationBrand === 'visa_master' ? 'Visa/Mastercard' : 'Elo/Amex'}).` 
+                : 'Simulado com as taxas padrão de Link de Pagamento online.'}
             </div>
           </div>
         </div>
