@@ -133,7 +133,10 @@ const formatPrice = (value: number): string => {
 
 export default function App() {
   const [products, setProducts] = useState<Product[]>(() => loadInitialProducts());
-  const [currentView, setCurrentView] = useState<'client' | 'admin-login' | 'admin'>('client');
+  const [currentView, setCurrentView] = useState<'client' | 'admin-login' | 'admin'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return (params.get('adm') === 'true' || params.get('admin') === 'true') ? 'admin-login' : 'client';
+  });
   const [adminTab, setAdminTab] = useState<'products' | 'bulk-adjust' | 'settings' | 'contracts'>('products');
   
   const isInitialProductsLoad = useRef(true);
@@ -160,31 +163,10 @@ export default function App() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Admin access control states
-  const [showAdminBtn, setShowAdminBtn] = useState(() => {
+  const [showAdminBtn] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('adm') === 'true' || params.get('admin') === 'true';
   });
-  const [, setLogoClickCount] = useState(0);
-  const [logoClickTimeout, setLogoClickTimeout] = useState<number | null>(null);
-
-  const handleLogoClick = () => {
-    if (logoClickTimeout) window.clearTimeout(logoClickTimeout);
-    
-    setLogoClickCount(prev => {
-      const next = prev + 1;
-      if (next >= 5) {
-        setShowAdminBtn(true);
-        triggerToast("Modo administrador liberado!");
-        return 0;
-      }
-      return next;
-    });
-
-    const timeout = window.setTimeout(() => {
-      setLogoClickCount(0);
-    }, 2000);
-    setLogoClickTimeout(timeout);
-  };
   
   // Passcode authentication state
   const [enteredPIN, setEnteredPIN] = useState("");
@@ -1988,10 +1970,7 @@ export default function App() {
       {/* Sticky Main Header */}
       <header className="glass-nav sticky top-0 z-40 px-4 py-3.5 flex items-center transition-all duration-300" id="client-header">
         <div className="max-w-6xl mx-auto w-full flex items-center justify-between">
-          <div 
-            onClick={handleLogoClick}
-            className="flex items-center select-none cursor-pointer active:scale-95 transition-transform"
-          >
+          <div className="flex items-center select-none">
             <img src="/logo-completa.png" alt="Alcance Imports Logo" className="h-8 md:h-10 w-auto object-contain" />
           </div>
 
