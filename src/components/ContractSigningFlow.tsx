@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   X, Check, ArrowRight, ArrowLeft, ShieldCheck, 
   FileText, Clipboard, Phone, Sparkles, AlertCircle,
@@ -100,6 +100,14 @@ export default function ContractSigningFlow({
   const rgFrontRef = useRef<HTMLInputElement>(null);
   const rgBackRef = useRef<HTMLInputElement>(null);
   const proofRef = useRef<HTMLInputElement>(null);
+
+  // Lock body scroll when signing flow is active
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   // Docs already uploaded by admin in draft?
   const adminDocs = presetContract?.documents;
@@ -268,7 +276,7 @@ export default function ContractSigningFlow({
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div
-        className="bg-white dark:bg-zinc-900 rounded-3xl max-w-2xl w-full p-4 sm:p-6 md:p-8 shadow-2xl relative border border-gray-150 dark:border-zinc-800 flex flex-col my-2 sm:my-8 max-h-[95vh] sm:max-h-[90vh]"
+        className="bg-white dark:bg-zinc-900 rounded-3xl max-w-2xl w-full p-4 sm:p-6 md:p-8 shadow-2xl relative border border-gray-150 dark:border-zinc-800 flex flex-col my-2 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >

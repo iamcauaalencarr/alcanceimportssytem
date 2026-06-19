@@ -417,6 +417,32 @@ export default function App() {
     return () => window.removeEventListener("hashchange", checkHash);
   }, [contracts]);
 
+  // Lock body scroll when client-side modals or drawers are open
+  useEffect(() => {
+    if (
+      isCartOpen || 
+      simulatingProduct !== null || 
+      editingProductIdx !== null || 
+      showCopyOverlay || 
+      isContractFlowOpen || 
+      activeSignContract !== null
+    ) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [
+    isCartOpen, 
+    simulatingProduct, 
+    editingProductIdx, 
+    showCopyOverlay, 
+    isContractFlowOpen, 
+    activeSignContract
+  ]);
+
   const handleContractSigned = (newContract: Contract) => {
     const exists = contracts.some(c => c.id === newContract.id);
     const updatedList = exists 
