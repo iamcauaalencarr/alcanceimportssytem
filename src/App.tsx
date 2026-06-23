@@ -18,6 +18,8 @@ import {
   deleteContractFromSupabase,
   fetchStoreConfig,
   saveStoreConfig,
+  fetchContractByToken,
+  signContractSecure,
   supabase
 } from './supabaseClient';
 
@@ -185,6 +187,7 @@ export default function App() {
   const isInitialProductsLoad = useRef(true);
   const isInitialSettingsLoad = useRef(true);
   const isInitialRatesLoad = useRef(true);
+  const prevPINRef = useRef(localStorage.getItem("alcance_imports_admin_pin") || typedSettingsData.adminPIN || "908077");
 
   // Card rates loaded from local storage or fallback to defaultRates JSON
   const [cardRates, setCardRates] = useState(() => {
@@ -294,25 +297,28 @@ export default function App() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [isContractFlowOpen, setIsContractFlowOpen] = useState(false);
 
-  // Load contracts, products, and settings from Supabase on mount
-  useEffect(() => {
-    const loadData = async () => {
-      // 1. Load contracts
-      try {
-        const data = await fetchContracts();
-        setContracts(data);
-        localStorage.setItem("alcance_imports_contracts", JSON.stringify(data));
-      } catch (e) {
-        console.warn("Falha ao buscar contratos do Supabase:", e);
-        const stored = localStorage.getItem("alcance_imports_contracts");
-        if (stored) {
-          try {
-            setContracts(JSON.parse(stored));
-          } catch (err) {
-            console.error("Erro ao carregar contratos do LocalStorage:", err);
-          }
+  const loadContractsList = async () => {
+    try {
+      const data = await fetchContracts();
+      setContracts(data);
+      localStorage.setItem("alcance_imports_contracts", JSON.stringify(data));
+    } catch (e) {
+      console.warn("Falha ao buscar contratos do Supabase:", e);
+      const stored = localStorage.getItem("alcance_imports_contracts");
+      if (stored) {
+        try {
+          setContracts(JSON.parse(stored));
+        } catch (err) {
+          console.error("Erro ao carregar contratos do LocalStorage:", err);
         }
       }
+    }
+  };
+
+  // Load products and settings from Supabase on mount
+  useEffect(() => {
+    const loadData = async () => {
+      // 1. Load products
 
       // 2. Load products
       try {
@@ -385,9 +391,26 @@ export default function App() {
     loadData();
   }, []);
 
+  // Check for active Supabase Auth session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      if (!supabase) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setCurrentView('admin');
+          loadContractsList();
+        }
+      } catch (err) {
+        console.warn("Erro ao recuperar sessão ativa:", err);
+      }
+    };
+    checkSession();
+  }, []);
+
   // Supabase Realtime Subscription for Contracts
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase || currentView !== 'admin') return;
 
     const channel = supabase
       .channel('contracts-realtime-changes')
@@ -444,26 +467,43 @@ export default function App() {
     }
   };
 
-  // Active contract signing route via URL Hash (#sign-contract=CTR-XXXXXX)
+  // Active contract signing route via URL Hash (#sign-contract=TOKEN)
   const [activeSignContract, setActiveSignContract] = useState<Contract | null>(null);
 
   useEffect(() => {
-    const checkHash = () => {
+    const checkHash = async () => {
       const hash = window.location.hash;
       if (hash && hash.startsWith("#sign-contract=")) {
-        const contractId = hash.split("=")[1];
-        const found = contracts.find(c => c.id === contractId);
+        const token = hash.split("=")[1];
+        
+        // Check in local contracts state first
+        const found = contracts.find(c => c.secureToken === token || c.id === token);
         if (found) {
           setActiveSignContract(found);
         } else {
-          // Fetch directly from server if not in loaded list yet
-          fetchContracts()
-            .then(data => {
-              if (Array.isArray(data)) {
-                const c = data.find((item: Contract) => item.id === contractId);
-                if (c) setActiveSignContract(c);
+          // Fetch directly from server / database
+          if (supabase) {
+            try {
+              const contract = await fetchContractByToken(token);
+              if (contract) {
+                setActiveSignContract(contract);
+              } else {
+                console.warn("Contrato não encontrado para o token especificado.");
               }
-            }).catch(err => console.warn("Erro ao buscar contrato por hash no Supabase:", err));
+            } catch (err) {
+              console.warn("Erro ao buscar contrato por token no Supabase:", err);
+            }
+          } else {
+            // Local fallback backend (when offline/supabase is null)
+            fetchContracts()
+              .then(data => {
+                if (Array.isArray(data)) {
+                  const c = data.find((item: Contract) => item.secureToken === token || item.id === token);
+                  if (c) setActiveSignContract(c);
+                }
+              })
+              .catch(err => console.warn("Erro ao buscar contratos offline:", err));
+          }
         }
       } else {
         setActiveSignContract(null);
@@ -502,12 +542,28 @@ export default function App() {
   ]);
 
   const handleContractSigned = (newContract: Contract) => {
-    const exists = contracts.some(c => c.id === newContract.id);
-    const updatedList = exists 
-      ? contracts.map(c => c.id === newContract.id ? newContract : c)
-      : [...contracts, newContract];
-      
-    handleUpdateContracts(updatedList);
+    if (supabase && currentView !== 'admin') {
+      // Customer signing flow: Save securely via RPC
+      signContractSecure(
+        newContract.id,
+        newContract.signature,
+        newContract.documents || {},
+        newContract.audit || {}
+      ).then(() => {
+        triggerToast("Contrato assinado com sucesso!");
+      }).catch(err => {
+        console.error("Falha ao salvar assinatura segura no Supabase:", err);
+        triggerToast("Erro ao sincronizar assinatura com o servidor.");
+      });
+    } else {
+      // Admin flow or local fallback mode
+      const exists = contracts.some(c => c.id === newContract.id);
+      const updatedList = exists 
+        ? contracts.map(c => c.id === newContract.id ? newContract : c)
+        : [...contracts, newContract];
+        
+      handleUpdateContracts(updatedList);
+    }
     setCart([]); // Esvaziar carrinho após assinar contrato
   };
 
@@ -546,7 +602,20 @@ export default function App() {
     localStorage.setItem("alcance_imports_card_tax_monthly", String(cardTaxMonthly));
 
     if (isInitialSettingsLoad.current) {
+      prevPINRef.current = adminPIN;
       return;
+    }
+
+    if (prevPINRef.current !== adminPIN) {
+      prevPINRef.current = adminPIN;
+      if (supabase) {
+        supabase.auth.updateUser({ password: adminPIN })
+          .then(() => triggerToast("PIN administrativo atualizado no banco!"))
+          .catch(err => {
+            console.warn("Erro ao sincronizar PIN com Supabase Auth:", err);
+            triggerToast("Erro ao sincronizar PIN com Supabase Auth");
+          });
+      }
     }
 
     saveStoreConfig('settings', {
@@ -632,29 +701,71 @@ export default function App() {
     reader.readAsDataURL(file);
   };
 
-  const handlePinInput = (num: string) => {
+  const handlePinInput = async (num: string) => {
     const pinLength = adminPIN.length || 6;
     if (enteredPIN.length < pinLength) {
       const nextPIN = enteredPIN + num;
       setEnteredPIN(nextPIN);
       
       if (nextPIN.length === pinLength) {
-        if (nextPIN === adminPIN) {
-          setTimeout(() => {
-            setCurrentView('admin');
-            setEnteredPIN("");
-            setPinError(false);
-            triggerToast("Acesso administrativo liberado!");
-          }, 300);
+        if (supabase) {
+          // ONLINE: Authenticate via Supabase Auth
+          try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+              email: "admin@alcanceimports.com",
+              password: nextPIN
+            });
+            if (error) throw error;
+            
+            setTimeout(() => {
+              setCurrentView('admin');
+              setEnteredPIN("");
+              setPinError(false);
+              triggerToast("Acesso administrativo liberado!");
+              loadContractsList();
+            }, 300);
+          } catch (err) {
+            console.error("Falha na autenticação do administrador:", err);
+            setTimeout(() => {
+              setPinError(true);
+              setEnteredPIN("");
+              setTimeout(() => setPinError(false), 500);
+              triggerToast("PIN incorreto. Tente novamente!");
+            }, 300);
+          }
         } else {
-          setTimeout(() => {
-            setPinError(true);
-            setEnteredPIN("");
-            setTimeout(() => setPinError(false), 500);
-          }, 300);
+          // OFFLINE: Local PIN check fallback
+          if (nextPIN === adminPIN) {
+            setTimeout(() => {
+              setCurrentView('admin');
+              setEnteredPIN("");
+              setPinError(false);
+              triggerToast("Acesso administrativo liberado!");
+            }, 300);
+          } else {
+            setTimeout(() => {
+              setPinError(true);
+              setEnteredPIN("");
+              setTimeout(() => setPinError(false), 500);
+            }, 300);
+          }
         }
       }
     }
+  };
+
+  const handleLogout = async () => {
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.warn("Erro ao fazer logout no Supabase:", err);
+      }
+    }
+    setCurrentView('client');
+    setContracts([]);
+    localStorage.removeItem("alcance_imports_contracts");
+    triggerToast("Logout realizado");
   };
 
   const deletePinDigit = () => {
@@ -1495,7 +1606,7 @@ export default function App() {
                 Ver Loja
               </button>
               <button 
-                onClick={() => { setCurrentView('client'); triggerToast("Logout realizado"); }} 
+                onClick={handleLogout} 
                 className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all shrink-0 cursor-pointer" 
                 title="Sair do Administrador"
               >

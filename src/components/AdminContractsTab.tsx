@@ -519,7 +519,9 @@ export default function AdminContractsTab({
         rgFront: rgFront || undefined,
         rgBack: rgBack || undefined,
         addressProof: addressProof || undefined
-      } : undefined
+      } : undefined,
+
+      secureToken: crypto.randomUUID()
     };
 
     onUpdateContracts([...contracts, newContract]);
@@ -527,7 +529,7 @@ export default function AdminContractsTab({
     const origin = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
       ? 'https://alcanceimportss.vercel.app'
       : window.location.origin;
-    const signLink = `${origin}${window.location.pathname}#sign-contract=${contractId}`;
+    const signLink = `${origin}${window.location.pathname}#sign-contract=${newContract.secureToken}`;
     setGeneratedLinkInfo({
       link: signLink,
       clientName: clientForm.name,
@@ -849,7 +851,7 @@ export default function AdminContractsTab({
                                 const origin = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
                                   ? 'https://alcanceimportss.vercel.app'
                                   : window.location.origin;
-                                const signLink = `${origin}${window.location.pathname}#sign-contract=${c.id}`;
+                                const signLink = `${origin}${window.location.pathname}#sign-contract=${c.secureToken || c.id}`;
                                 setGeneratedLinkInfo({
                                   link: signLink,
                                   clientName: c.clientName,

@@ -98,6 +98,9 @@ export interface Contract {
 
   // Audit trail details
   audit?: ContractAudit;
+  
+  // Secure token for unguessable signing links
+  secureToken?: string;
 }
 
 export interface ContractAudit {

@@ -81,6 +81,39 @@ export async function deleteContractFromSupabase(contractId: string): Promise<vo
   }
 }
 
+export async function fetchContractByToken(token: string): Promise<Contract | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .rpc('get_contract_by_token', { token });
+
+  if (error) {
+    console.error('Erro ao buscar contrato por token do Supabase:', error);
+    throw error;
+  }
+  return (data && data.length > 0) ? (data[0] as Contract) : null;
+}
+
+export async function signContractSecure(
+  contractId: string,
+  signature: string,
+  documents: any,
+  audit: any
+): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .rpc('sign_contract_secure', {
+      contract_id: contractId,
+      client_signature: signature,
+      client_documents: documents,
+      client_audit: audit
+    });
+
+  if (error) {
+    console.error('Erro ao assinar contrato de forma segura no Supabase:', error);
+    throw error;
+  }
+}
+
 // --- Store Configs Helpers (Products & Settings) ---
 
 export async function fetchStoreConfig<T>(key: string, fallback: T): Promise<T> {
@@ -107,9 +140,15 @@ export async function fetchStoreConfig<T>(key: string, fallback: T): Promise<T> 
 
 export async function saveStoreConfig<T>(key: string, value: T): Promise<void> {
   if (!supabase) return;
+  let cleanValue = value;
+  if (key === 'settings' && typeof value === 'object' && value !== null) {
+    const copy = { ...value } as any;
+    delete copy.adminPIN; // Exclude PIN from being stored in plaintext in the database row
+    cleanValue = copy;
+  }
   const { error } = await supabase
     .from('store_configs')
-    .upsert({ key, value });
+    .upsert({ key, value: cleanValue });
 
   if (error) {
     console.error(`Erro ao salvar config ${key} no Supabase:`, error);
