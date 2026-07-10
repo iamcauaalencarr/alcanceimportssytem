@@ -2393,7 +2393,25 @@ export default function App() {
               />
             </div>
 
-
+            {/* Custom simulation button in header */}
+            <button
+              onClick={() => {
+                setSimulatingProduct({
+                  category: 'custom',
+                  model: 'Simulação Personalizada',
+                  storage: 'Valor Avulso',
+                  cashPrice: 'R$ 1.000,00',
+                  installmentPrice: '',
+                  selectedColorIdx: 0,
+                  colors: []
+                });
+              }}
+              className="px-3 py-2 text-xs font-bold text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white rounded-full flex items-center gap-1.5 transition-all cursor-pointer mr-1"
+              title="Simular Parcelas de Valor Personalizado"
+            >
+              <Percent className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Simular Valor</span>
+            </button>
 
             {/* Cart Button */}
             <button 
@@ -2463,6 +2481,26 @@ export default function App() {
                 <CreditCard className="w-3.5 h-3.5 text-brand-primary" />
                 Até 12x no Cartão
               </span>
+            </div>
+
+            <div className="pt-2 flex flex-wrap gap-2 justify-center md:justify-start select-none">
+              <button
+                onClick={() => {
+                  setSimulatingProduct({
+                    category: 'custom',
+                    model: 'Simulação Personalizada',
+                    storage: 'Valor Avulso',
+                    cashPrice: 'R$ 1.000,00',
+                    installmentPrice: '',
+                    selectedColorIdx: 0,
+                    colors: []
+                  });
+                }}
+                className="px-4 py-2 bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-bold rounded-full flex items-center gap-1.5 shadow-md shadow-blue-500/20 hover:shadow-blue-500/35 transition-all cursor-pointer"
+              >
+                <Percent className="w-3.5 h-3.5" />
+                Simular Valor Personalizado
+              </button>
             </div>
           </div>
           
@@ -3054,6 +3092,55 @@ export default function App() {
                     >
                       <span className="font-semibold text-purple-600 dark:text-purple-400 font-mono">ELO / AMEX</span>
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Value Input (For Custom Simulation only) */}
+              {simulatingProduct.category === 'custom' && (
+                <div className="space-y-2 bg-brand-primary/5 dark:bg-brand-primary/10 border border-brand-primary/15 p-3 rounded-2xl animate-fade-in">
+                  <label className="text-[9px] font-bold text-brand-primary uppercase tracking-wider block">
+                    Valor a Simular (R$)
+                  </label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3.5 text-xs font-bold text-brand-muted">R$</span>
+                    <input 
+                      type="text" 
+                      inputMode="numeric"
+                      placeholder="Digite o valor"
+                      value={parsePrice(simulatingProduct.cashPrice) || ''}
+                      onChange={(e) => {
+                        const cleanVal = e.target.value.replace(/[^\d]/g, '');
+                        const val = parseFloat(cleanVal) || 0;
+                        setSimulatingProduct(prev => prev ? { ...prev, cashPrice: formatPrice(val) } : null);
+                        // Reset down payment if it exceeds the new cash price
+                        if (downPaymentInput >= val) {
+                          setDownPaymentInput(0);
+                        }
+                      }}
+                      className="w-full text-xs bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl pl-9 pr-4 py-2.5 text-brand-secondary dark:text-white focus:outline-none focus:border-brand-primary font-mono transition-all"
+                    />
+                  </div>
+                  {/* Presets */}
+                  <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+                    {[1000, 2000, 3500, 5000].map(preset => (
+                      <button
+                        key={preset}
+                        onClick={() => {
+                          setSimulatingProduct(prev => prev ? { ...prev, cashPrice: formatPrice(preset) } : null);
+                          if (downPaymentInput >= preset) {
+                            setDownPaymentInput(0);
+                          }
+                        }}
+                        className={`py-1.5 rounded-lg text-[9px] font-bold transition-all cursor-pointer border ${
+                          parsePrice(simulatingProduct.cashPrice) === preset 
+                            ? 'bg-brand-primary/10 border-brand-primary text-brand-primary'
+                            : 'bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-brand-secondary dark:text-zinc-350 hover:bg-gray-50'
+                        }`}
+                      >
+                        R$ {preset}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
